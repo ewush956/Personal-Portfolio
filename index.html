@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Evan Wushke</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Comfortaa:700" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css"
+        integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <link rel="stylesheet" href="index.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
+</head>
+
+<body>
+    <div id="loading">
+        <div id="spinner"></div>
+    </div>
+    <div id="header" class="animated slideInDown" style="animation-delay:1.8s;">
+        <div id="title">Evan Wushke </div> <br>
+        <div id="links">
+            <a href="#skills">Skills</a>
+            <a href="#work" style="margin:0px 60px;">Projects</a>
+            <a href="#contact">Contact</a>
+            <a href="#resume">Resume</a>
+        </div>
+    </div>
+
+    <center>
+        <div id="middle">
+            <div id="tagline" class="animated zoomIn" style="animation-delay:1.8s;">
+                Hi! Welcome to my portfolio, my names Evan, I'm a computer science student at
+                Mount Royal University. <br>
+                <a href="https://github.com/ewush956"><button class="btn_two">Check out my github
+                        <i class="fab fa-github"></i></button></a>
+                <a href="https://www.linkedin.com/in/evan-wushke-226a7924b/"><button class="btn_two"> Connect with me on
+                        LinkedIn
+                        <i class="fab fa-linkedin"></i></button></a>
+                <div id="or">or...</div>
+                <button id="mystery" class="btn_one">... Press the mystery button ... </button>
+            </div>
+        </div>
+    </center>
+
+    <div id="portfolio">
+        <div id="skills">
+            <h1>skills.</h1>
+            <div class="skills-container">
+                <div class="skill">
+                    <img class="icons" src="images/icons/html.svg" alt="HTML5">
+                    <p>HTML5</p>
+                </div>
+                <div class="skill">
+                    <img class="icons" src="images/icons/css.svg" alt="CSS3">
+                    <p>CSS3</p>
+                </div>
+                <div class="skill">
+                    <img class="icons" src="images/icons/javascript.svg" alt="JavaScript">
+                    <p>JavaScript</p>
+                </div>
+                <div class="skill">
+                    <img class="icons" src="images/icons/react.svg" alt="React">
+                    <p>React</p>
+                </div>
+                <div class="skill">
+                    <img class="icons" src="images/icons/nodejs.svg" alt="Node.js">
+                    <p>Node.js</p>
+                </div>
+                <div class="skill">
+                    <img class="icons" src="images/icons/python.svg" alt="Python">
+                    <p>Python</p>
+                </div>
+                <!-- Add more skills as needed -->
+            </div>
+        </div>
+
+        <div id="work">
+            <h1>projects.</h1>
+
+            <div class="project">
+                <h2>Formula 1 Dashboard</h2>
+                <div>
+                    <!--Describe F1 Dashboard web Application here-->
+                </div>
+                <button class="btn_one">visit website</button>
+                <button class="btn_two">github</button>
+            </div>
+
+            <div class="project">
+                <h2>3D Pathfinder</h2>
+                <div>
+                    <!--Describe 3D Pathfinder web Application here-->
+                </div>
+                <button class="btn_one">github</button>
+            </div>
+
+        </div>
+
+        <div id="contact">
+            <h1>contact.</h1>
+            <form>
+                <input type="text" placeholder="name" required>
+                <input type="email" placeholder="email" required><br>
+                <textarea placeholder="your message" required rows="5"></textarea><br>
+                <button class="btn_one">send</button>
+            </form>
+            <div id="details">
+                <a class="btn_social"><i class="fas fa-phone"></i></a>
+                <a class="btn_social"><i class="fas fa-at"></i></a>
+                <a class="btn_social"><i class="fab fa-twitter"></i></a>
+                <a class="btn_social"><i class="fab fa-dribbble"></i></a>
+            </div>
+        </div>
+    </div>
+    <div id="footer">
+        congrats, you made it to the footer! proud of you :) <br><br>
+    </div>
+    <script src="index.js" type="text/javascript"></script>
+    <script>
+        document.getElementById('mystery').addEventListener('click', function () {
+            // Get button position
+            const button = this;
+            const rect = button.getBoundingClientRect();
+            const originX = (rect.left + rect.width / 2) / window.innerWidth;
+            const originY = (rect.top + rect.height / 2) / window.innerHeight;
+
+            // Trigger confetti animation
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { x: originX, y: originY }
+            });
+
+            // Change button text
+            const originalText = button.innerText;
+            button.innerText = "🎉 Nothing Happened! 🥳";
+
+            // Revert button text after 3 seconds
+            setTimeout(function () {
+                button.innerText = originalText;
+            }, 2000);
+        });
+    </script>
+</body>
+
+</html>
