@@ -129,11 +129,15 @@ html {
     -o-animation: Gradient 20s ease infinite;
     animation: Gradient 20s ease infinite;
     font-family: 'Comfortaa', cursive;
-}
+}   
 
 #skills {
     margin: 4vh 0 !important;
     padding: 2vh 0 !important;
+    /*background: linear-gradient(0deg, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.1)), url("https://images.unsplash.com/photo-1573767291321-c0af2eaf5266?q=80&w=2036&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed;*/
+    background-size: 100% auto;
+    background-repeat: no-repeat;
+    transition: 1s ease-in-out;
 }
 
 .icons {
@@ -212,10 +216,21 @@ html {
     /* Ensure the border-radius is applied on hover as well */
 }
 
-
+.skill-name {
+    color: #2bcaff;
+}
 #work {
-    margin: 4vh 0px !important;
-    padding: 2vh 0px !important;
+    /*background: linear-gradient(0deg, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.1)), url("https://images.unsplash.com/photo-1600184831467-29f64598f37e?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed;*/
+    background-size: 100% auto;
+    background-repeat: no-repeat;
+    transition: 1s ease-in-out;
+}
+
+#projects {
+    
+    background-size: 100% auto;
+    background-repeat: no-repeat;
+    transition: 1s ease-in-out;
 }
 
 #contact {

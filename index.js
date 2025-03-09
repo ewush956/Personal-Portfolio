@@ -62,7 +62,7 @@ $(document).ready(function () {
 
         if (typingInProgress) clearInterval(currentInterval);
 
-        if (activeCategory && activeCategory[0] !== currentCategory[0]) {
+        if (activeCategory) {
             let activeSpan = activeCategory.find("h2 .skill-name");
             untypeText(activeSpan, function () {
                 activeSpan.text('');
