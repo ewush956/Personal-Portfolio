@@ -132,26 +132,86 @@ html {
 }
 
 #skills {
-    margin: 4vh 0px !important;
-    padding: 2vh 0px !important;
+    margin: 4vh 0 !important;
+    padding: 2vh 0 !important;
 }
 
 .icons {
-    width: 80px;
-    /* Adjust the width as needed */
+    width: 50px;
     height: auto;
-    /* Maintain aspect ratio */
     margin: 10px;
-    /* Add some space around the icons */
+}
+
+.categories {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 20px;
+    padding: 15px;
+}
+
+.skills-category {
+    display: contents;
+    position: relative;
+
+
+}
+
+.skills-category::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    /* Light blue transparent background */
+    border-radius: 10px;
+    /* Adjust the radius as needed */
+
+    /* Ensure the background is behind the content */
+    pointer-events: none;
+    /* Allow clicks to pass through the background */
+}
+
+.skills-category h2 {
+    margin: 0;
+    max-width: 150px;
+}
+
+.skills-category h2 .skill-name {
+    transition: opacity 0.3s ease-in-out;
 }
 
 .skills-container {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 20px;
-    /* Space between skill items */
+    flex-wrap: nowrap;
+    justify-content: left;
+    gap: 15px;
 }
+
+.skill {
+    text-align: left;
+}
+
+.skills-category p.description {
+    margin: 0;
+}
+
+.skill img {
+    transition: outline 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    border-radius: 10px;
+    /* Adjust the radius as needed */
+}
+
+.skill:hover img {
+    outline: 2px solid #78d7fa;
+    /* Glowing blue outline */
+    box-shadow: 0 0 10px #78d7fa;
+    /* Glowing blue shadow */
+    border-radius: 10px;
+    /* Ensure the border-radius is applied on hover as well */
+}
+
 
 #work {
     margin: 4vh 0px !important;
@@ -269,6 +329,72 @@ html {
     color: #000;
     background: #fff;
     cursor: pointer;
+}
+
+.btn_three {
+    padding: 10px 40px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-family: 'Comfortaa', cursive;
+    font-weight: bold;
+    background: transparent;
+    transition: 0.4s ease-in-out;
+    margin: 30px 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    animation: pulse 3s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0px rgba(0, 0, 0, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 10px rgba(120, 215, 250, 0.7);
+    }
+
+    100% {
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+}
+
+.btn_three {
+    background-color: #333;
+    color: #fff;
+    border: 2px solid #444;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn_three::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: rgba(255, 255, 255, 0.1);
+    transform: rotate(45deg);
+    transition: all 0.5s ease;
+
+}
+
+.btn_three:hover::before {
+    top: -30%;
+    left: -30%;
+    width: 160%;
+    height: 160%;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn_three:hover {
+    background-color: #444;
+    border-color: #555;
+    box-shadow: 0 0 10px rgba(120, 215, 250, 0.7);
+    animation: none;
 }
 
 @media (max-width: 900px) {
