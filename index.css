@@ -246,7 +246,26 @@ html {
     background-repeat: no-repeat;
     transition: 5s ease-in-out;
 }
+.project {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
 
+.project-content {
+    flex: 1;
+}
+
+.project img.project-img {
+    max-width: 40%;
+    height: auto;
+    margin-left: 20px;
+}
+
+.project-buttons {
+    margin-top: 10px;
+}
 #contact {
     margin: 4vh 0px !important;
     padding: 2vh 0px !important;
