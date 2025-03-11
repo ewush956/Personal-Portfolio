@@ -100,11 +100,11 @@ html {
     flex-direction: column;
     transition: 1s ease-in-out;
     padding-top: 20vh;
+    padding-bottom: 20vh;
 }
 
 #tagline {
     font-size: 50px;
-    width: 60%;
 }
 
 #or {
@@ -114,10 +114,11 @@ html {
 
 #portfolio {
     width: 80%;
-    padding: 2% 10%;
-}
+    padding: 18% 10%;
+}   
 
 #portfolio div h1 {
+    padding-top: 5%;
     font-size: 40px;
     background-image: linear-gradient(to left, #41dfff 0%, #2bcaff 100%);
     -webkit-background-clip: text;
