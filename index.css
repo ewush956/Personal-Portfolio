@@ -7,6 +7,8 @@ html {
     color: #fff;
     background: rgb(0, 0, 0);
     scroll-behavior: smooth;
+    
+    
 }
 
 #loading {
@@ -40,7 +42,13 @@ html {
         transform: rotate(360deg);
     }
 }
-
+h3, h4, h5, h6, p, span {
+    text-shadow: 
+        -1px -1px 0 #000,  
+         1px -1px 0 #000,
+        -1px  1px 0 #000,
+         1px  1px 0 #000; /* Add a black outline */
+}
 #header {
     width: 80%;
     padding: 4% 10%;
@@ -55,8 +63,8 @@ html {
 
 #title {
     font-size: 40px;
-    /*background-image: linear-gradient(to left, #FF416C 0%, #FF4B2B 100%);*/
-    background-image: linear-gradient(to left, #41dfff 0%, #2bcaff 100%);
+    /*background-image: linear-gradient(to left, #41dfff 0%, #2bcaff 100%); */
+    background-color: #06eeff;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -66,6 +74,7 @@ html {
     -o-animation: Gradient 20s ease infinite;
     animation: Gradient 20s ease infinite;
     font-family: 'Comfortaa', cursive;
+    text-shadow: 0px 0px 40px rgba(255, 255, 255, 0.5);
 }
 
 #links {
@@ -105,6 +114,7 @@ html {
 
 #tagline {
     font-size: 50px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 #or {
@@ -120,7 +130,8 @@ html {
 #portfolio div h1 {
     padding-top: 5%;
     font-size: 40px;
-    background-image: linear-gradient(to left, #41dfff 0%, #2bcaff 100%);
+    /*background-image: linear-gradient(to left, #41dfff 0%, #2bcaff 100%);*/
+    background-color: #f1f1f1;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -133,7 +144,7 @@ html {
 }
 
 .highlight {
-    color: #2be3ff
+    color: #ff2be6; /* Optional: Add some padding to make the border look better */
 }
 
 #skills {
@@ -252,13 +263,26 @@ html {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 2em;
+    background-color: #1f1e1ec1;
+    border-radius: 10px;
+    padding: 1.5em;
+    margin-left: -1.15em;
+    margin-right: -1.15em;
 }
 
 .project-content {
     flex: 1;
+    
 }
 
+.project-content h2 {
+    background: #2be3ff;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
+}
 .project img.project-img {
     max-width: 40%;
     height: auto;
