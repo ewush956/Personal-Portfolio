@@ -587,3 +587,171 @@ button:focus {
         background-position: 0% 50%
     }
 }
+
+@media (max-width: 600px) {
+    /* Prevent horizontal scrolling and reset margins */
+    #links {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+      }
+      #links a {
+        font-size: 10px;
+        margin: 0 5px !important; /* Override inline styles */
+      }
+      #title {
+        font-size: 28px;  /* Increased from the previous size */
+        padding-top: 10px; /* Adds a bit of spacing at the top */
+      }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      overflow-x: hidden;
+      box-sizing: border-box;
+    }
+    
+    /* Use flexbox for overall layout */
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    /* Sections */
+    #header, #middle, #skills, #work, #contact, #footer {
+      width: 100%;
+      padding: 10px 5%;
+      box-sizing: border-box;
+    }
+    
+    /* Header */
+    #header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #title {
+      font-size: 24px;
+      margin: 0 0 10px;
+    }
+    #links {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 100%;
+      align-items: center;
+    }
+    #links a {
+      font-size: 14px;
+      margin: 5px 0;
+    }
+    
+    /* Middle Section */
+    #middle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    #tagline {
+      font-size: 20px;
+      margin: 0;
+    }
+    .btn_one, .btn_two, .btn_three {
+      font-size: 14px;
+      padding: 8px 15px;
+      margin: 5px;
+    }
+    
+    /* Skills Section Redesigned */
+    #skills {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .categories {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 100%;
+      align-items: center;
+    }
+    .skills-category {
+      width: 100%;
+      max-width: 400px;
+    }
+    .skills-category h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .skills-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .icons {
+      width: 30px;
+      height: auto;
+      margin: 5px;
+    }
+    .skills-category p.description {
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    
+    /* Projects Section */
+    #work {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .project {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 20px 0;
+      width: 100%;
+    }
+    .project-content {
+      width: 100%;
+      text-align: center;
+    }
+    .project img.project-img {
+      width: 90%;
+      max-width: 300px;
+      margin: 10px 0;
+    }
+    
+    /* Contact Section */
+    #contact {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #contact form input,
+    #contact form textarea {
+      width: 100%;
+      max-width: 400px;
+      margin: 10px auto;
+      padding: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .btn_social {
+      font-size: 14px;
+      padding: 8px;
+      margin: 5px;
+    }
+    
+    /* Footer */
+    #footer {
+      text-align: center;
+      font-size: 14px;
+    }
+  }
+  
+  
