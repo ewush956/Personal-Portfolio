@@ -114,9 +114,11 @@ h3, h4, h5, h6, p, span {
 
 #tagline {
     font-size: 50px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    text-shadow: 0px 0px 40px #06eeff7f;
 }
-
+#welcome {
+    text-shadow: 0px 0px 40px #0000005c;
+}
 #or {
     font-size: 20px;
     width: 60%;
