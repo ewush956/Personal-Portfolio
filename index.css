@@ -476,6 +476,9 @@ h3, h4, h5, h6, p, span {
 }
 
 @media (max-width: 900px) {
+    #middle {
+        background-size: cover;
+    }
     #header {
         width: 94%;
         padding: 15% 3%;
@@ -617,21 +620,24 @@ button:focus {
 
 @media (max-width: 600px) {
     /* Prevent horizontal scrolling and reset margins */
+    #middle {
+        width: 100vw; /* Full width of the viewport */
+        height: 100vh; /* Full height of the viewport */
+        background-size: cover !important; /* Ensure the background covers the entire container */
+        background-position: center; /* Center the background image */
+    }
     #links {
         display: flex;
         flex-direction: row;
         justify-content: center;
         align-items: center;
         gap: 5px;
-      }
-      #links a {
-        font-size: 10px;
+        margin: 0;
+        font-size: 28px;
+    }
+    #links a {
         margin: 0 5px !important; /* Override inline styles */
-      }
-      #title {
-        font-size: 28px;  /* Increased from the previous size */
-        padding-top: 10px; /* Adds a bit of spacing at the top */
-      }
+    }
     html, body {
       margin: 0;
       padding: 0;
@@ -661,16 +667,10 @@ button:focus {
       align-items: center;
     }
     #title {
-      font-size: 24px;
-      margin: 0 0 10px;
+      font-size: 42px;
+      margin: 40px 0 10px;
     }
-    #links {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      width: 100%;
-      align-items: center;
-    }
+
     #links a {
       font-size: 14px;
       margin: 5px 0;
@@ -687,10 +687,16 @@ button:focus {
       font-size: 20px;
       margin: 0;
     }
+    #github {
+      margin-top: 40px;
+    }
+    #welcome {
+      font-size: 30px;
+    }
     .btn_one, .btn_two, .btn_three {
       font-size: 14px;
       padding: 8px 15px;
-      margin: 5px;
+      margin: 20px;
     }
     
     /* Skills Section Redesigned */
@@ -736,6 +742,9 @@ button:focus {
       flex-direction: column;
       align-items: center;
     }
+    #work-bg {
+        background-size: cover !important;
+    }
     .project {
       display: flex;
       flex-direction: column;
@@ -746,6 +755,9 @@ button:focus {
     .project-content {
       width: 100%;
       text-align: center;
+    }
+    .project-description {
+        text-align: left;
     }
     .project img.project-img {
       width: 90%;
