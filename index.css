@@ -505,12 +505,17 @@ dialog::backdrop {
 }
 
 dialog {
+    display: none; /* Hide the dialog by default */
     border: none;
     padding: 0;
     background: none;
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+dialog[open] {
+    display: flex; /* Show the dialog when it is open */
 }
 
 dialog iframe {
@@ -871,4 +876,12 @@ button:focus {
         text-align: center;
         font-size: 14px;
     }
+    dialog {
+        display: none;
+    }
+    dialog iframe {
+        width: 90%; /* Adjust the width to 90% of the viewport */
+        height: auto; /* Maintain aspect ratio */
+    }
+
 }
