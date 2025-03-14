@@ -498,6 +498,25 @@ span {
     box-shadow: 0 0 10px rgba(120, 215, 250, 0.7);
     animation: none;
 }
+/* Dialog CSS */
+dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px); /* Blur the background */
+}
+
+dialog {
+    border: none;
+    padding: 0;
+    background: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+dialog iframe {
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
 
 @media (max-width: 900px) {
     #middle {
