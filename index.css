@@ -7,8 +7,8 @@ html {
     color: #fff;
     background: rgb(0, 0, 0);
     scroll-behavior: smooth;
-    
-    
+
+
 }
 
 #loading {
@@ -42,13 +42,21 @@ html {
         transform: rotate(360deg);
     }
 }
-h3, h4, h5, h6, p, span {
-    text-shadow: 
-        -1px -1px 0 #000,  
-         1px -1px 0 #000,
-        -1px  1px 0 #000,
-         1px  1px 0 #000; /* Add a black outline */
+
+h3,
+h4,
+h5,
+h6,
+p,
+span {
+    text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+    /* Add a black outline */
 }
+
 #header {
     width: 80%;
     padding: 4% 10%;
@@ -100,10 +108,11 @@ h3, h4, h5, h6, p, span {
     width: 100%;
     height: 80vh;
     /*background: linear-gradient(0deg, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0)), url("https://images.unsplash.com/photo-1494587351196-bbf5f29cff42?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&&w=1351&q=80") center center fixed;*/
-    background: linear-gradient(0deg, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0)), 
-    /*url("https://images.unsplash.com/photo-1519608487953-e999c86e7455?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed; */
-    url("images/home-bg.png") center center fixed;
-    background-size: 100% auto;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0)),
+        /*url("https://images.unsplash.com/photo-1519608487953-e999c86e7455?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed; */
+        url("images/home-bg.png") center center fixed;
+    /*background-size: 100% auto;*/
+    background-size: cover;
     background-repeat: no-repeat;
     color: white;
     display: flex;
@@ -112,15 +121,18 @@ h3, h4, h5, h6, p, span {
     transition: 1s ease-in-out;
     padding-top: 20vh;
     padding-bottom: 20vh;
+
 }
 
 #tagline {
     font-size: 50px;
     text-shadow: 0px 0px 40px #06eeff7f;
 }
+
 #welcome {
     text-shadow: 0px 0px 40px #0000005c;
 }
+
 #or {
     font-size: 20px;
     width: 60%;
@@ -129,7 +141,7 @@ h3, h4, h5, h6, p, span {
 #portfolio {
     width: 80%;
     padding: 18% 10%;
-}   
+}
 
 #portfolio div h1 {
     padding-top: 5%;
@@ -138,7 +150,7 @@ h3, h4, h5, h6, p, span {
     background-color: #f1f1f1;
     -webkit-background-clip: text;
     background-clip: text;
-    -webkit-text-fill-color: transparent;
+    /*-webkit-text-fill-color: transparent;*/
     background-size: 500% 500% !important;
     -webkit-animation: Gradient 20s ease infinite;
     -moz-animation: Gradient 20s ease infinite;
@@ -148,7 +160,8 @@ h3, h4, h5, h6, p, span {
 }
 
 .highlight {
-    color: #ff2be6; /* Optional: Add some padding to make the border look better */
+    color: #ff2be6;
+    /* Optional: Add some padding to make the border look better */
 }
 
 #skills {
@@ -240,18 +253,20 @@ h3, h4, h5, h6, p, span {
 .skill-name {
     color: #2bcaff;
 }
+
 #contact p {
     line-height: 2;
 }
+
 #work-bg {
     /*background: linear-gradient(0deg, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.1)), url("https://images.unsplash.com/photo-1600184831467-29f64598f37e?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed;*/
     background: linear-gradient(0deg, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.1)),
         /*make a linear gradient that fades the top of the image to black*/
 
-       /* url("https://images.unsplash.com/photo-1573767291321-c0af2eaf5266?q=80&w=2036&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed; */
-       /*url("https://images.unsplash.com/photo-1573767291321-c0af2eaf5266?q=80&w=2036&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed; */
-       url("images/projects-bg.png") center center fixed; 
-       background-size: 100% auto;
+        /* url("https://images.unsplash.com/photo-1573767291321-c0af2eaf5266?q=80&w=2036&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed; */
+        /*url("https://images.unsplash.com/photo-1573767291321-c0af2eaf5266?q=80&w=2036&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed; */
+        url("images/projects-bg.png") center center fixed;
+    background-size: 100% auto;
     background-repeat: no-repeat;
     transition: 1s ease-in-out;
     margin: 10vh -10% !important;
@@ -266,6 +281,7 @@ h3, h4, h5, h6, p, span {
     background-repeat: no-repeat;
     transition: 5s ease-in-out;
 }
+
 .project {
     display: flex;
     align-items: center;
@@ -280,16 +296,18 @@ h3, h4, h5, h6, p, span {
 
 .project-content {
     flex: 1;
-    
+
 }
 
-.project-content h2 {
+.project-content h2,
+.project h2 {
     background: #2be3ff;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-fill-color: transparent;
+    /*text-fill-color: transparent;*/
 }
+
 .project img.project-img {
     max-width: 40%;
     height: auto;
@@ -301,6 +319,7 @@ h3, h4, h5, h6, p, span {
 .project-buttons {
     margin-top: 10px;
 }
+
 #contact {
     margin: 4vh 0px !important;
     padding: 2vh 0px !important;
@@ -484,6 +503,7 @@ h3, h4, h5, h6, p, span {
     #middle {
         background-size: cover;
     }
+
     #header {
         width: 94%;
         padding: 15% 3%;
@@ -624,13 +644,19 @@ button:focus {
 }
 
 @media (max-width: 600px) {
+
     /* Prevent horizontal scrolling and reset margins */
     #middle {
-        width: 100vw; /* Full width of the viewport */
-        height: 100vh; /* Full height of the viewport */
-        background-size: cover !important; /* Ensure the background covers the entire container */
-        background-position: center; /* Center the background image */
+        width: 100vw;
+        /* Full width of the viewport */
+        height: 100vh;
+        /* Full height of the viewport */
+        background-size: cover !important;
+        /* Ensure the background covers the entire container */
+        background-position: center;
+        /* Center the background image */
     }
+
     #links {
         display: flex;
         flex-direction: row;
@@ -640,163 +666,190 @@ button:focus {
         margin: 0;
         font-size: 28px;
     }
+
     #links a {
-        margin: 0 5px !important; /* Override inline styles */
+        margin: 0 5px !important;
+        /* Override inline styles */
     }
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      overflow-x: hidden;
-      box-sizing: border-box;
+
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
     }
-    
+
     /* Use flexbox for overall layout */
     body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
-    
+
     /* Sections */
-    #header, #middle, #skills, #work, #contact, #footer {
-      width: 100%;
-      padding: 10px 5%;
-      box-sizing: border-box;
+    #header,
+    #middle,
+    #skills,
+    #work,
+    #contact,
+    #footer {
+        width: 100%;
+        padding: 10px 5%;
+        box-sizing: border-box;
     }
-    
+
     /* Header */
     #header {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
+
     #title {
-      font-size: 42px;
-      margin: 40px 0 10px;
+        font-size: 42px;
+        margin: 40px 0 10px;
     }
 
     #links a {
-      font-size: 14px;
-      margin: 5px 0;
+        font-size: 14px;
+        margin: 5px 0;
     }
-    
+
     /* Middle Section */
     #middle {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
     }
+
     #tagline {
-      font-size: 20px;
-      margin: 0;
+        font-size: 20px;
+        margin: 0;
     }
+
     #github {
-      margin-top: 40px;
+        margin-top: 40px;
     }
+
     #welcome {
-      font-size: 30px;
+        font-size: 30px;
     }
-    .btn_one, .btn_two, .btn_three {
-      font-size: 14px;
-      padding: 8px 15px;
-      margin: 20px;
+
+    .btn_one,
+    .btn_two,
+    .btn_three {
+        font-size: 14px;
+        padding: 8px 15px;
+        margin: 20px;
     }
-    
+
     /* Skills Section Redesigned */
     #skills {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
+
     .categories {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      width: 100%;
-      align-items: center;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        align-items: center;
     }
+
     .skills-category {
-      width: 100%;
-      max-width: 400px;
+        width: 100%;
+        max-width: 400px;
     }
+
     .skills-category h2 {
-      font-size: 18px;
-      margin-bottom: 10px;
+        font-size: 18px;
+        margin-bottom: 10px;
     }
+
     .skills-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
     }
+
     .icons {
-      width: 30px;
-      height: auto;
-      margin: 5px;
+        width: 30px;
+        height: auto;
+        margin: 5px;
     }
+
     .skills-category p.description {
-      font-size: 14px;
-      margin-top: 10px;
+        font-size: 14px;
+        margin-top: 10px;
     }
-    
+
     /* Projects Section */
     #work {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
+
     #work-bg {
         background-size: cover !important;
         box-shadow: inset 0 0 50px 50px rgba(0, 0, 0, 1);
     }
+
     .project {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin: 20px 0;
-      width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 20px 0;
+        width: 100%;
     }
+
     .project-content {
-      width: 100%;
-      text-align: center;
+        width: 100%;
+        text-align: center;
     }
+
     .project-description {
         text-align: left;
     }
+
     .project img.project-img {
-      width: 90%;
-      max-width: 300px;
-      margin: 10px 0;
+        width: 90%;
+        max-width: 300px;
+        margin: 10px 0;
     }
-    
+
     /* Contact Section */
     #contact {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
+
     #contact form input,
     #contact form textarea {
-      width: 100%;
-      max-width: 400px;
-      margin: 10px auto;
-      padding: 8px;
-      font-size: 14px;
-      box-sizing: border-box;
+        width: 100%;
+        max-width: 400px;
+        margin: 10px auto;
+        padding: 8px;
+        font-size: 14px;
+        box-sizing: border-box;
     }
+
     .btn_social {
-      font-size: 14px;
-      padding: 8px;
-      margin: 5px;
+        font-size: 14px;
+        padding: 8px;
+        margin: 5px;
     }
-    
+
     /* Footer */
     #footer {
-      text-align: center;
-      font-size: 14px;
+        text-align: center;
+        font-size: 14px;
     }
-  }
-  
-  
+}

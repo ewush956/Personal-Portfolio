@@ -91,3 +91,11 @@ window.onscroll = function () {
 setTimeout(function () {
     $("#loading").addClass("animated fadeOut");
 });
+document.querySelectorAll('.btn_social').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        const detail = this.getAttribute('data-detail');
+        const detailDisplay = document.getElementById('detail-display');
+        detailDisplay.innerText = detail;
+        detailDisplay.style.display = 'block';
+    });
+});
