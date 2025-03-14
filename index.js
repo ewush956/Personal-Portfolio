@@ -108,19 +108,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get the button that opens the dialog
     var demo_btn = document.querySelector(".demo");
 
-    // Get the <span> element that closes the dialog
-    var span = document.getElementsByClassName("close")[0];
-
     // When the user clicks the button, open the dialog 
     demo_btn.onclick = function() {
         dialog.showModal();
         document.getElementById("demoVideo").src = "https://www.youtube.com/embed/ztl50Ilu-sg";
-    }
-
-    // When the user clicks on <span> (x), close the dialog
-    span.onclick = function() {
-        dialog.close();
-        document.getElementById("demoVideo").src = "";
     }
 
     // When the user clicks anywhere outside of the dialog, close it
