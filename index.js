@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $("#loading").css("display", "none");
             }, 800);
         }, 1450);
-
+/*
         let typingInProgress = false;
         let currentInterval;
         let activeCategory = null;
@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             activeCategory = currentCategory;
         });
+        */
     });
 
     var width = $(window).width();
