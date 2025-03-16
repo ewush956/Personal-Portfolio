@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     $(document).ready(function () {
         $("a").on('click', function (event) {
             if (this.hash !== "") {
@@ -21,61 +21,61 @@ document.addEventListener('DOMContentLoaded', function() {
                 $("#loading").css("display", "none");
             }, 800);
         }, 1450);
-/*
-        let typingInProgress = false;
-        let currentInterval;
-        let activeCategory = null;
-
-        function typeText(element, text) {
-            let index = 0;
-            element.text('');
-            clearInterval(currentInterval);
-            typingInProgress = true;
-            currentInterval = setInterval(function () {
-                if (index < text.length) {
-                    element.append(text.charAt(index++));
-                } else {
+        /*
+                let typingInProgress = false;
+                let currentInterval;
+                let activeCategory = null;
+        
+                function typeText(element, text) {
+                    let index = 0;
+                    element.text('');
                     clearInterval(currentInterval);
-                    typingInProgress = false;
+                    typingInProgress = true;
+                    currentInterval = setInterval(function () {
+                        if (index < text.length) {
+                            element.append(text.charAt(index++));
+                        } else {
+                            clearInterval(currentInterval);
+                            typingInProgress = false;
+                        }
+                    }, 60);
                 }
-            }, 60);
-        }
-
-        function untypeText(element, callback) {
-            let text = element.text();
-            let index = text.length;
-            clearInterval(currentInterval);
-            currentInterval = setInterval(function () {
-                if (index > 0) {
-                    element.text(text.substring(0, --index));
-                } else {
+        
+                function untypeText(element, callback) {
+                    let text = element.text();
+                    let index = text.length;
                     clearInterval(currentInterval);
-                    typingInProgress = false;
-                    if (callback) callback();
+                    currentInterval = setInterval(function () {
+                        if (index > 0) {
+                            element.text(text.substring(0, --index));
+                        } else {
+                            clearInterval(currentInterval);
+                            typingInProgress = false;
+                            if (callback) callback();
+                        }
+                    }, 30);
                 }
-            }, 30);
-        }
-
-        $(".skill").on('click', function () {
-            var iconName = $(this).data("icon");
-            let currentCategory = $(this).closest(".skills-category");
-            let span = currentCategory.find("h2 .skill-name");
-
-            if (typingInProgress) clearInterval(currentInterval);
-
-            if (activeCategory) {
-                let activeSpan = activeCategory.find("h2 .skill-name");
-                untypeText(activeSpan, function () {
-                    activeSpan.text('');
-                    typeText(span, " with " + iconName);
+        
+                $(".skill").on('click', function () {
+                    var iconName = $(this).data("icon");
+                    let currentCategory = $(this).closest(".skills-category");
+                    let span = currentCategory.find("h2 .skill-name");
+        
+                    if (typingInProgress) clearInterval(currentInterval);
+        
+                    if (activeCategory) {
+                        let activeSpan = activeCategory.find("h2 .skill-name");
+                        untypeText(activeSpan, function () {
+                            activeSpan.text('');
+                            typeText(span, " with " + iconName);
+                        });
+                    } else {
+                        typeText(span, " with " + iconName);
+                    }
+        
+                    activeCategory = currentCategory;
                 });
-            } else {
-                typeText(span, " with " + iconName);
-            }
-
-            activeCategory = currentCategory;
-        });
-        */
+                */
     });
 
     var width = $(window).width();
@@ -110,13 +110,17 @@ document.addEventListener('DOMContentLoaded', function() {
     var demo_btn = document.querySelector(".demo");
 
     // When the user clicks the button, open the dialog 
-    demo_btn.onclick = function() {
+    demo_btn.onclick = function () {
+        modal_div = document.querySelector(".dialog-content");
+        modal_div.classList.remove("hidden");
         dialog.showModal();
         document.getElementById("demoVideo").src = "https://www.youtube.com/embed/ztl50Ilu-sg";
     }
 
     // When the user clicks anywhere outside of the dialog, close it
-    dialog.addEventListener('click', function(event) {
+    dialog.addEventListener('click', function (event) {
+        modal_div = document.querySelector(".dialog-content");
+        modal_div.classList.add("hidden");
         if (event.target === dialog) {
             dialog.close();
             document.getElementById("demoVideo").src = "";
