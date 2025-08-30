@@ -1,17 +1,28 @@
 document.addEventListener('DOMContentLoaded', function () {
-    $(document).ready(function () {
-        $("a").on('click', function (event) {
-            if (this.hash !== "") {
-                event.preventDefault();
-                var hash = this.hash;
-                $('body,html').animate({
-                    scrollTop: $(hash).offset().top
-                }, 1200, function () {
-                    window.location.hash = hash;
+    // Optimized navigation without jQuery dependency
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            const targetElement = document.querySelector(targetId);
+            
+            if (targetElement) {
+                // Use native smooth scrolling with reduced duration
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
                 });
+                
+                // Update URL hash after a short delay to ensure smooth scrolling completes
+                setTimeout(() => {
+                    window.location.hash = targetId;
+                }, 100);
             }
         });
+    });
 
+    // Keep jQuery for other functionality but optimize it
+    $(document).ready(function () {
         $("#middle").css("background-size", "100% auto");
 
         setTimeout(function () {
