@@ -145,8 +145,9 @@ span {
     display: flex;
     justify-content: center;
     flex-direction: column;
+    align-items: center;
     transition: var(--medium-transition);
-    padding: 16vh 0 8vh;
+    padding: 12vh 0 8vh;
     overflow: hidden;
 }
 
@@ -185,17 +186,120 @@ span {
 }
 
 #tagline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    width: auto;
+    max-width: 92vw;
     font-size: 50px;
+    text-align: center;
     text-shadow: 0px 0px 40px #06eeff7f;
 }
 
 #welcome {
+    white-space: nowrap;
     text-shadow: 0px 0px 40px #0000005c;
 }
 
-#or {
-    font-size: 20px;
-    width: 60%;
+.hero-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 0.5rem 0.75rem;
+}
+
+#scroll-prompt {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 0.75rem;
+    color: inherit;
+    text-decoration: none;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+#scroll-prompt:hover {
+    transform: translateY(4px);
+    opacity: 0.92;
+}
+
+.scroll-copy {
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.84);
+    text-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.scroll-indicator {
+    position: relative;
+    width: 42px;
+    height: 42px;
+}
+
+.scroll-indicator::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    border-right: 3px solid rgba(255, 255, 255, 0.9);
+    border-bottom: 3px solid rgba(255, 255, 255, 0.9);
+    transform: translateX(-50%) rotate(45deg);
+    animation: scrollPulse 1.8s ease-in-out infinite;
+}
+
+.scroll-indicator::after {
+    content: "";
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    border-right: 3px solid rgba(255, 255, 255, 0.5);
+    border-bottom: 3px solid rgba(255, 255, 255, 0.5);
+    transform: translateX(-50%) rotate(45deg);
+    animation: scrollPulseTrail 1.8s ease-in-out infinite;
+}
+
+@keyframes scrollPulse {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -2px) rotate(45deg);
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 0.2;
+        transform: translate(-50%, 10px) rotate(45deg);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, 14px) rotate(45deg);
+    }
+}
+
+@keyframes scrollPulseTrail {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -4px) rotate(45deg);
+    }
+
+    30% {
+        opacity: 0.7;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, 8px) rotate(45deg);
+    }
 }
 
 #portfolio {
@@ -613,7 +717,7 @@ dialog iframe {
 @media (max-width: 900px) {
     #middle {
         min-height: 92vh;
-        padding: 14vh 0 6vh;
+        padding: 12vh 0 6vh;
     }
 
     #header {
@@ -760,7 +864,7 @@ button:focus {
     #middle {
         width: 100vw;
         min-height: 100vh;
-        padding: 18vh 0 4vh;
+        padding: 16vh 0 4vh;
     }
 
     #links {
@@ -833,7 +937,12 @@ button:focus {
 
     #tagline {
         font-size: 20px;
+        gap: 1rem;
         margin: 0;
+    }
+
+    #welcome {
+        white-space: normal;
     }
 
     #github {
@@ -850,6 +959,20 @@ button:focus {
         font-size: 14px;
         padding: 8px 15px;
         margin: 20px;
+    }
+
+    .hero-actions {
+        flex-wrap: wrap;
+        gap: 0.35rem 0.5rem;
+    }
+
+    #scroll-prompt {
+        margin-top: 0.25rem;
+    }
+
+    .scroll-copy {
+        font-size: 0.78rem;
+        letter-spacing: 0.05em;
     }
 
     /* Skills Section Redesigned */
