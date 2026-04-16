@@ -1144,12 +1144,14 @@ button:focus {
             "photo"
             "heading"
             "description";
+        justify-items: center;
     }
 
     .hero-portrait {
         width: min(210px, 100%);
         height: auto;
         aspect-ratio: 4 / 5;
+        justify-self: center;
     }
 
     .btn_one,
@@ -1188,6 +1190,10 @@ button:focus {
     .hero-projects-copy {
         font-size: 0.8rem;
         letter-spacing: 0.08em;
+    }
+
+    .hero-projects-link {
+        display: none;
     }
 
     /* Skills Section Redesigned */
