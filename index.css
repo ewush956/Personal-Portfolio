@@ -59,6 +59,11 @@ html {
     }
 }
 
+center {
+    display: block;
+    width: 100%;
+}
+
 h3,
 h4,
 h5,
@@ -79,10 +84,10 @@ span {
     left: 0;
     right: 0;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 2rem;
-    width: auto;
+    flex-wrap: wrap;
+    gap: 0.75rem 2rem;
     padding: 2rem 3rem;
     z-index: 5;
     transition: var(--fast-transition);
@@ -147,22 +152,14 @@ span {
     -ms-user-select: none;
 }
 
-#middle {
+.hero-section {
     position: relative;
     isolation: isolate;
-    width: 100%;
-    min-height: 100vh;
-    color: white;
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
-    align-items: center;
-    transition: var(--medium-transition);
-    padding: 12vh 0 8vh;
     overflow: hidden;
+    min-height: 100svh;
 }
 
-#middle::before {
+.hero-section::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -176,7 +173,7 @@ span {
     will-change: transform;
 }
 
-#middle::after {
+.hero-section::after {
     content: "";
     position: absolute;
     left: 0;
@@ -191,9 +188,27 @@ span {
             rgba(0, 0, 0, 0.92) 100%);
 }
 
-#middle>* {
+@media (orientation: portrait) {
+    .hero-section::before {
+        background:
+            linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.72) 78%, rgba(0, 0, 0, 0.96)),
+            image-set(url("images/home-bg.avif") type("image/avif"),
+                url("images/home-bg.png") type("image/png")) center 60% / auto 150% no-repeat;
+    }
+}
+
+#middle {
     position: relative;
     z-index: 1;
+    width: 100%;
+    min-height: 100svh;
+    color: white;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    padding: clamp(6rem, 14vh, 10rem) 4% clamp(3rem, 8vh, 6rem);
+    box-sizing: border-box;
 }
 
 #tagline {
@@ -221,17 +236,21 @@ span {
     margin-top: 0.5rem;
 }
 
+.card {
+    background: linear-gradient(180deg, rgba(13, 18, 28, 0.72), rgba(8, 10, 18, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 28px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
 .hero-card {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
     padding: 1.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 28px;
-    background: linear-gradient(180deg, rgba(13, 18, 28, 0.72), rgba(8, 10, 18, 0.9));
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(12px);
     text-align: left;
     text-shadow: none;
 }
@@ -461,11 +480,11 @@ span {
 }
 
 #portfolio {
-    width: 80%;
-    margin-top: -12vh;
-    padding: 10vh 10% 18%;
+    width: 100%;
+    padding: 0 4% 4rem;
     position: relative;
     z-index: 1;
+    box-sizing: border-box;
 }
 
 #portfolio div h1 {
@@ -576,21 +595,15 @@ span {
 
 #work-bg {
     position: relative;
-    /*background: linear-gradient(0deg, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.1)), url("https://images.unsplash.com/photo-1600184831467-29f64598f37e?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed;*/
     background: linear-gradient(0deg, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.1)),
-        /*make a linear gradient that fades the top of the image to black*/
-
-        /* url("https://images.unsplash.com/photo-1573767291321-c0af2eaf5266?q=80&w=2036&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed; */
-        /*url("https://images.unsplash.com/photo-1573767291321-c0af2eaf5266?q=80&w=2036&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D") center center fixed; */
         image-set(url("images/projects-bg.avif") type("image/avif"),
             url("images/projects-bg.png") type("image/png")) center center / cover no-repeat;
     background-repeat: no-repeat;
-    transition: transform 0.6s ease, box-shadow 0.6s ease;
-    margin: -8vh -10% 8vh !important;
-    padding: 8vh 10% 4vh !important;
     box-shadow: inset 0 0 50px 50px rgba(0, 0, 0, 1);
     border-radius: 32px;
     overflow: hidden;
+    padding: 6vh 0 4vh;
+    margin-bottom: 4rem;
 }
 
 #work-bg::before {
@@ -614,16 +627,18 @@ span {
     transition: 5s ease-in-out;
 }
 
+#work {
+    width: min(1100px, 92vw);
+    margin: 0 auto;
+    padding: 0;
+}
+
 .project {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 2em;
-    background-color: #1f1e1ec1;
-    border-radius: 10px;
+    margin-bottom: 1.5rem;
     padding: 1.5em;
-    margin-left: -1.15em;
-    margin-right: -1.15em;
 }
 
 .project-content {
@@ -864,20 +879,11 @@ dialog iframe {
 }
 
 @media (max-width: 900px) {
-    #middle {
-        min-height: auto;
-        padding: 3rem 0 5rem;
-    }
-
     #header {
-        position: relative;
-        width: auto;
-        padding: 1.5rem 1.25rem 0;
-        display: flex;
-        flex-direction: column;
+        padding: 1.25rem 1.5rem;
+        flex-direction: row;
         align-items: center;
-        justify-content: flex-start;
-        gap: 0.85rem;
+        justify-content: space-between;
     }
 
     #title {
@@ -888,19 +894,13 @@ dialog iframe {
     #links {
         margin: 0;
         gap: 0.4rem 0.7rem;
-        justify-content: center;
+        justify-content: flex-end;
     }
 
     #links a {
         margin: 0;
         font-size: 0.92rem;
         padding: 0.2rem 0.25rem;
-    }
-
-    #middle {
-        width: 100%;
-        border-radius: 0px;
-        min-height: auto;
     }
 
     #tagline {
@@ -1048,29 +1048,6 @@ button:focus {
 
 @media (max-width: 600px) {
 
-    /* Prevent horizontal scrolling and reset margins */
-    #middle {
-        width: 100vw;
-        min-height: auto;
-        padding: 2rem 0 4vh;
-    }
-
-    #links {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
-        gap: 0.35rem 0.6rem;
-        margin: 0;
-        font-size: 14px;
-    }
-
-    #links a {
-        margin: 0 !important;
-        font-size: 13px;
-    }
-
     html,
     body {
         margin: 0;
@@ -1080,41 +1057,38 @@ button:focus {
         box-sizing: border-box;
     }
 
-    /* Use flexbox for overall layout */
-    body {
-        display: flex;
+    #header {
+        padding: 1.25rem 1.25rem;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
     }
 
-    /* Sections */
-    #middle,
-    #work,
+    #title {
+        font-size: 28px;
+        margin: 0;
+    }
+
+    #links {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.35rem 0.6rem;
+        margin: 0;
+    }
+
+    #links a {
+        margin: 0 !important;
+        font-size: 13px;
+    }
+
     #contact,
     #footer {
         width: 100%;
         padding: 10px 5%;
         box-sizing: border-box;
-    }
-
-    /* Header */
-    #header {
-        width: auto;
-        padding: 1rem 1rem 0;
-        gap: 0.75rem;
-    }
-
-    #title {
-        font-size: 32px;
-        margin: 0;
-    }
-
-    /* Middle Section */
-    #middle {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
     }
 
     #tagline {
@@ -1133,9 +1107,12 @@ button:focus {
         gap: 0.9rem;
     }
 
+    .card {
+        border-radius: 22px;
+    }
+
     .hero-card {
         padding: 1.1rem;
-        border-radius: 22px;
     }
 
     .hero-about-layout {
@@ -1196,17 +1173,9 @@ button:focus {
         display: none;
     }
 
-    /* Skills Section Redesigned */
-    #work {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
     #work-bg {
-        box-shadow: inset 0 0 50px 50px rgba(0, 0, 0, 1);
-        margin: 0 -5% 6vh !important;
         border-radius: 24px;
+        box-shadow: inset 0 0 20px 10px rgba(0, 0, 0, 0.9);
     }
 
     .project {
@@ -1214,7 +1183,6 @@ button:focus {
         flex-direction: column;
         align-items: center;
         margin: 20px 0;
-        width: 100%;
     }
 
     .project-content {
