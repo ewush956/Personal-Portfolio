@@ -36,6 +36,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const maxScroll = Math.max(window.innerHeight * 0.75, 1);
         const progress = Math.min(window.scrollY / maxScroll, 1);
         root.style.setProperty('--hero-zoom', progress.toFixed(3));
+
+        const workMaxScroll = Math.max(window.innerHeight, 1);
+        const workProgress = Math.min(window.scrollY / workMaxScroll, 1);
+        root.style.setProperty('--work-zoom', workProgress.toFixed(3));
+
         ticking = false;
     }
 
