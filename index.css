@@ -309,7 +309,7 @@ span {
 
 .hero-about-heading {
     grid-area: heading;
-    align-self: center;
+    align-self: start;
 }
 
 .hero-about-description {
@@ -482,7 +482,7 @@ span {
 
 #portfolio {
     width: 100%;
-    padding: 0 4% 4rem;
+    padding: 0 0 4rem;
     position: relative;
     z-index: 1;
     box-sizing: border-box;
@@ -491,17 +491,17 @@ span {
 #portfolio div h1 {
     padding-top: 5%;
     font-size: 40px;
-    /*background-image: linear-gradient(to left, #41dfff 0%, #2bcaff 100%);*/
-    background-color: #f1f1f1;
+    background-color: #06eeff;
     -webkit-background-clip: text;
     background-clip: text;
-    /*-webkit-text-fill-color: transparent;*/
+    -webkit-text-fill-color: transparent;
     background-size: 500% 500% !important;
     -webkit-animation: Gradient 20s ease infinite;
     -moz-animation: Gradient 20s ease infinite;
     -o-animation: Gradient 20s ease infinite;
     animation: Gradient 20s ease infinite;
     font-family: 'Comfortaa', cursive;
+    text-shadow: 0px 0px 40px rgba(255, 255, 255, 0.5);
 }
 
 .highlight {
@@ -595,9 +595,12 @@ span {
 
 #work-bg {
     position: relative;
-    background: linear-gradient(0deg, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.1)),
+    background-image:
+        linear-gradient(0deg, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.1)),
         image-set(url("images/projects-bg.avif") type("image/avif"),
-            url("images/projects-bg.png") type("image/png")) center center / cover no-repeat;
+            url("images/projects-bg.png") type("image/png"));
+    background-size: auto, cover;
+    background-position: center, center center;
     background-repeat: no-repeat;
     box-shadow: inset 0 0 50px 50px rgba(0, 0, 0, 1);
     border-radius: 32px;
@@ -679,9 +682,17 @@ span {
     margin-top: 10px;
 }
 
+.project-buttons .btn_one,
+.project-buttons .btn_two,
+.project-buttons .btn_three {
+    margin-left: 0;
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
 #contact {
     margin: 4vh 0px !important;
-    padding: 2vh 0px !important;
+    padding: 2vh 4% !important;
 }
 
 #contact form {
@@ -1091,15 +1102,16 @@ button:focus {
     #links {
         display: flex;
         flex-direction: row;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         justify-content: center;
-        gap: 0.35rem 0.6rem;
+        gap: 0.35rem clamp(0.3rem, 1.5vw, 0.6rem);
         margin: 0;
     }
 
     #links a {
         margin: 0 !important;
-        font-size: 13px;
+        font-size: clamp(10px, 2.8vw, 13px);
+        white-space: nowrap;
     }
 
     #contact,
@@ -1199,6 +1211,10 @@ button:focus {
         box-shadow: inset 0 0 20px 10px rgba(0, 0, 0, 0.9);
     }
 
+    #portfolio div h1 {
+        font-size: 1.75rem;
+    }
+
     .project {
         display: grid;
         grid-template-areas:
@@ -1217,6 +1233,13 @@ button:focus {
 
     .project-buttons {
         grid-area: buttons;
+    }
+
+    .project-buttons .btn_one,
+    .project-buttons .btn_two,
+    .project-buttons .btn_three {
+        margin-top: 8px;
+        margin-bottom: 8px;
     }
 
     .project-description {
