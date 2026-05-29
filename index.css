@@ -1172,10 +1172,11 @@ button:focus {
     }
 
     .hero-portrait {
-        width: min(210px, 100%);
+        width: min(320px, 100%);
         height: auto;
-        aspect-ratio: 4 / 5;
+        aspect-ratio: 5 / 4;
         justify-self: center;
+        object-position: center 11%;
     }
 
     .btn_one,
