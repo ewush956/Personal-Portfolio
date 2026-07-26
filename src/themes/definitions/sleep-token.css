@@ -1,0 +1,61 @@
+/* ==========================================================================
+   SLEEP TOKEN — deep forest green & ritual gold, engraved serif, refined
+   ========================================================================== */
+[data-theme='sleep-token'] {
+  --color-bg: #0a1712;
+  --color-bg-2: #0c1f17;
+  --bg-scrim: linear-gradient(180deg, rgba(5, 11, 8, 0.62), rgba(5, 11, 8, 0.82));
+  --bg-fallback: radial-gradient(120% 90% at 50% 0%, #10281d 0%, #0a1712 50%, #050b08 100%);
+  --bg-hero: var(--bg-scrim),
+    url('/images/backgrounds/sleep-token-hero.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --bg-projects: var(--bg-scrim),
+    url('/images/backgrounds/sleep-token-projects.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --bg-contact: var(--bg-scrim),
+    url('/images/backgrounds/sleep-token-contact.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --color-surface: rgba(14, 34, 25, 0.8);
+  --color-surface-2: rgba(18, 42, 31, 0.9);
+  --color-text: #e8e2d4;
+  --color-heading: #e6c877;
+  --color-muted: #8fa596;
+  --color-accent: #c9a24b;
+  --color-accent-2: #e6c877;
+  --color-accent-contrast: #0a1712;
+  --color-border: rgba(201, 162, 75, 0.4);
+
+  --font-display: 'Cinzel', Georgia, serif;
+  --font-body: 'EB Garamond', Georgia, serif;
+  --font-weight-display: 600;
+  --heading-transform: uppercase;
+  --heading-tracking: 0.22em;
+  --font-scale: 1.12;
+  --display-scale: 0.94;
+
+  --card-bg: linear-gradient(165deg, rgba(18, 42, 31, 0.9), rgba(9, 22, 16, 0.92));
+  --card-border: 1px solid rgba(201, 162, 75, 0.4);
+  --card-radius: 4px;
+  --card-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.85);
+  --card-pad: clamp(1.5rem, 3.5vw, 2.5rem);
+
+  --btn-bg: transparent;
+  --btn-fg: #e6c877;
+  --btn-border: 1px solid rgba(201, 162, 75, 0.7);
+  --btn-radius: 2px;
+  --btn-shadow: none;
+  --btn-hover-bg: rgba(201, 162, 75, 0.14);
+
+  --ease: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur: 0.9s;
+
+  --header-bg: rgba(8, 18, 13, 0.7);
+  --tag-bg: rgba(201, 162, 75, 0.12);
+  --tag-fg: #d9c088;
+
+  --heading-glow: none;
+  --atmos: radial-gradient(circle at 50% 30%, rgba(201, 162, 75, 0.06), transparent 60%);
+  --atmos-size: auto;
+  --atmos-opacity: 1;
+  --vignette: radial-gradient(130% 100% at 50% 40%, transparent 45%, rgba(0, 0, 0, 0.75) 100%);
+}

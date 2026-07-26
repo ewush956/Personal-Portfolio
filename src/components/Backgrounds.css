@@ -1,0 +1,36 @@
+.backgrounds {
+  position: fixed;
+  inset: 0;
+  z-index: -3; /* behind the atmosphere layers (body::before -2, ::after -1) */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-layer {
+  position: absolute;
+  inset: 0;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transform: scale(1.09);
+  transition:
+    opacity var(--dur, 0.6s) var(--ease, ease),
+    transform 1.4s var(--ease, ease);
+  will-change: opacity, transform;
+}
+
+.bg-layer--active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-layer {
+    transition: opacity 0.25s linear;
+    transform: none;
+  }
+  .bg-layer--active {
+    transform: none;
+  }
+}

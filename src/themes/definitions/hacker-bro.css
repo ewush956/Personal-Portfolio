@@ -1,0 +1,61 @@
+/* ==========================================================================
+   HACKER BRO — green-on-black terminal, CRT scanlines, monospace
+   ========================================================================== */
+[data-theme='hacker-bro'] {
+  --color-bg: #050805;
+  --color-bg-2: #0a120a;
+  --bg-scrim: linear-gradient(180deg, rgba(3, 6, 3, 0.72), rgba(3, 6, 3, 0.86));
+  --bg-fallback: linear-gradient(180deg, #060a06, #030503);
+  --bg-hero: var(--bg-scrim),
+    url('/images/backgrounds/hacker-bro-hero.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --bg-projects: var(--bg-scrim),
+    url('/images/backgrounds/hacker-bro-projects.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --bg-contact: var(--bg-scrim),
+    url('/images/backgrounds/hacker-bro-contact.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --color-surface: rgba(6, 16, 8, 0.85);
+  --color-surface-2: rgba(10, 22, 12, 0.9);
+  --color-text: #6bf5a0;
+  --color-heading: #b7ffcf;
+  --color-muted: #3f8f5f;
+  --color-accent: #00ff9c;
+  --color-accent-2: #ffb000;
+  --color-accent-contrast: #030503;
+  --color-border: rgba(0, 255, 156, 0.3);
+
+  --font-display: 'Share Tech Mono', ui-monospace, monospace;
+  --font-body: 'JetBrains Mono', ui-monospace, monospace;
+  --font-weight-display: 400;
+  --heading-transform: uppercase;
+  --heading-tracking: 0.12em;
+  --font-scale: 0.95;
+  --display-scale: 0.92;
+
+  --card-bg: rgba(4, 12, 6, 0.9);
+  --card-border: 1px solid rgba(0, 255, 156, 0.35);
+  --card-radius: 2px;
+  --card-shadow: 0 0 0 1px rgba(0, 255, 156, 0.06), 0 0 30px -12px rgba(0, 255, 156, 0.5);
+  --card-pad: clamp(1.1rem, 3vw, 1.75rem);
+
+  --btn-bg: rgba(0, 255, 156, 0.08);
+  --btn-fg: #00ff9c;
+  --btn-border: 1px solid #00ff9c;
+  --btn-radius: 2px;
+  --btn-shadow: none;
+  --btn-hover-bg: rgba(0, 255, 156, 0.2);
+
+  --ease: steps(6, end);
+  --dur: 0.3s;
+
+  --header-bg: rgba(3, 6, 3, 0.8);
+  --tag-bg: rgba(0, 255, 156, 0.1);
+  --tag-fg: #7dffb0;
+
+  --heading-glow: 0 0 12px rgba(0, 255, 156, 0.5);
+  --atmos: repeating-linear-gradient(0deg, rgba(0, 255, 156, 0.06) 0 1px, transparent 1px 3px);
+  --atmos-size: auto;
+  --atmos-opacity: 0.6;
+  --vignette: radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.7) 100%);
+}

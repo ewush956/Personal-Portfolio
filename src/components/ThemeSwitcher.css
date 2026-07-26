@@ -1,0 +1,104 @@
+.themes {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding-block: var(--space-3);
+  background: var(--header-bg);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.6s var(--ease), border-color 0.6s var(--ease);
+}
+
+.themes__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.themes__eyebrow {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-display);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--color-accent);
+}
+
+.themes__hint {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  margin: 0;
+}
+
+/* Mobile-first: horizontally scrollable row of chips */
+.themes__list {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.themes__list::-webkit-scrollbar {
+  display: none;
+}
+
+.theme-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  padding: 0.5em 0.9em;
+  border: 1px solid var(--color-border);
+  border-radius: var(--btn-radius);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-display);
+  letter-spacing: var(--heading-tracking);
+  white-space: nowrap;
+  transition:
+    color 0.25s var(--ease),
+    border-color 0.25s var(--ease),
+    background 0.25s var(--ease),
+    transform 0.15s var(--ease);
+}
+
+.theme-chip:hover {
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+.theme-chip--active {
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.theme-chip__swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25) inset;
+}
+
+.theme-chip__label {
+  line-height: 1;
+}
+
+/* Wider screens: intro sits beside the chips, chips wrap instead of scroll */
+@media (min-width: 768px) {
+  .themes__inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .themes__list {
+    overflow-x: visible;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
