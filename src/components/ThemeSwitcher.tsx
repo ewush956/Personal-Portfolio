@@ -2,9 +2,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTheme } from '../themes/useTheme';
 import './ThemeSwitcher.css';
 
-// Past this scroll offset the bar condenses: text hides and chips become a
-// right-aligned row of color circles — reclaiming space (esp. on mobile).
-const CONDENSE_AT = 32;
+// The bar condenses as soon as you scroll down at all, and only expands again
+// once you're back at the very top. Two thresholds with a dead zone between them
+// (hysteresis) decide the state: a single threshold let tiny scroll jitters near
+// the boundary flip it repeatedly and strand the staged animation half-collapsed.
+// Now scrolling DOWN past CONDENSE_AT condenses, and it stays condensed until
+// scrollY returns to the top (EXPAND_AT); anywhere in between holds.
+const CONDENSE_AT = 4; // any real scroll down → condense
+const EXPAND_AT = 0; //   only fully back at the top → expand
 
 // Choreography (mobile only). Nothing morphs:
 //   expanded --(fade content out)--> condensing
@@ -82,7 +87,11 @@ export function ThemeSwitcher() {
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
-        const next = window.scrollY > CONDENSE_AT;
+        // Hysteresis: hold the current state inside the dead zone. When
+        // condensed (target true) only expanding below EXPAND_AT flips it;
+        // when expanded only crossing CONDENSE_AT does.
+        const y = window.scrollY;
+        const next = targetRef.current ? y > EXPAND_AT : y > CONDENSE_AT;
         if (next === targetRef.current && mountedRef.current) return;
         targetRef.current = next;
 
@@ -127,7 +136,6 @@ export function ThemeSwitcher() {
     const section = list.closest('.themes') as HTMLElement;
     const inner = list.parentElement as HTMLElement;
     const intro = section.querySelector<HTMLElement>('.themes__intro');
-    const top = section.querySelector<HTMLElement>('.themes__top');
     const chips = Array.from(list.children) as HTMLElement[];
 
     animsRef.current.forEach((a) => a.cancel());
@@ -136,7 +144,7 @@ export function ThemeSwitcher() {
     // Measure the true final height with transitions frozen (so it's not a
     // mid-transition frame), then animate the bar from its old height to it.
     if (fromH != null) {
-      const frozen = [section, inner, intro, top, ...chips].filter(Boolean) as HTMLElement[];
+      const frozen = [section, inner, intro, ...chips].filter(Boolean) as HTMLElement[];
       frozen.forEach((el) => {
         el.style.transition = 'none';
       });
@@ -181,14 +189,6 @@ export function ThemeSwitcher() {
           ),
         );
       });
-      if (top) {
-        top.animate([{ opacity: 0 }, { opacity: 1 }], {
-          duration: 240,
-          delay: CIRCLE_START + chips.length * STAGGER_MS + 40,
-          easing: 'ease-out',
-          fill: 'backwards',
-        });
-      }
     } else {
       // Returning to expanded: the full chips + intro fade back in (no morph).
       if (intro) {
@@ -218,12 +218,6 @@ export function ThemeSwitcher() {
     };
   }, [phase]);
 
-  const scrollToTop = () => {
-    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
-  };
-
-  const isCondensed = phase === 'condensed';
   const stateClass =
     phase === 'condensed'
       ? ' themes--condensed'
@@ -236,28 +230,6 @@ export function ThemeSwitcher() {
   return (
     <section className={`themes${stateClass}`} aria-label="Site themes">
       <div className="container themes__inner">
-        <button
-          type="button"
-          className="themes__top"
-          onClick={scrollToTop}
-          tabIndex={isCondensed ? 0 : -1}
-          aria-hidden={!isCondensed}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 19V5M5 12l7-7 7 7" />
-          </svg>
-          <span>Top</span>
-        </button>
         <div className="themes__intro">
           <span className="themes__eyebrow">Themes</span>
           <p className="themes__hint" key={themeId}>

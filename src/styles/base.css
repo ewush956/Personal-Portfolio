@@ -50,6 +50,10 @@ html {
   scroll-behavior: smooth;
   scroll-padding-top: 5rem;
   -webkit-text-size-adjust: 100%;
+  /* The sticky theme bar shrinks when it condenses. Without this, the browser's
+     scroll anchoring compensates by nudging scrollY back toward the top, which
+     re-triggers the expand→condense cycle and loops the animation. */
+  overflow-anchor: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
