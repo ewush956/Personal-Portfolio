@@ -22,64 +22,6 @@
   gap: var(--space-3);
 }
 
-/* "Back to top" button — only surfaces in the condensed bar, taking the slot
-   the intro text vacates. Collapsed to zero footprint otherwise. */
-.themes__top {
-  order: -1;
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  max-width: 0;
-  padding: 0;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--btn-radius);
-  background: var(--color-surface);
-  color: var(--color-muted);
-  font-family: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition:
-    max-width 0.3s var(--ease),
-    padding 0.3s var(--ease),
-    opacity 0.2s var(--ease),
-    color 0.25s var(--ease),
-    border-color 0.25s var(--ease);
-}
-
-.themes__top:hover {
-  color: var(--color-text);
-  border-color: var(--color-accent);
-}
-
-.themes__top svg {
-  flex: 0 0 auto;
-}
-
-/* Keep the button sized in both states so it fades (opacity) rather than
-   resizing when it enters/leaves. */
-.themes--condensed .themes__top,
-.themes--expanding .themes__top {
-  max-width: 8rem;
-  padding: 0.4em 0.7em;
-  min-height: 34px;
-}
-
-.themes--condensed .themes__top {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.themes--expanding .themes__top {
-  opacity: 0;
-  pointer-events: none;
-}
-
 /* Intro block: "THEMES" with the splash line underneath */
 .themes__intro {
   display: flex;
@@ -130,7 +72,11 @@
   display: flex;
   gap: var(--space-1);
   overflow-x: auto;
-  padding-bottom: 2px;
+  /* overflow-x:auto forces overflow-y to compute as auto, which clips the top
+     edge of a chip. Symmetric vertical padding gives the active pill (esp.
+     synthwave's fully-rounded chip in the taller Comfortaa font) room so its
+     top isn't shaved. */
+  padding-block: 2px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -287,7 +233,6 @@
 @media (prefers-reduced-motion: reduce) {
   .themes,
   .themes__intro,
-  .themes__top,
   .theme-chip,
   .theme-chip__label,
   .theme-chip__swatch {
