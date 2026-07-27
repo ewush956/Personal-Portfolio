@@ -38,7 +38,9 @@
    ≥768:    label + heading span the top, photo beside the copy below. */
 .hero__about-grid {
   display: grid;
-  grid-template-columns: 1fr auto;
+  /* minmax(0, 1fr) lets the text column shrink/wrap so it can never squeeze
+     the fixed-width photo — keeps the photo identical across all themes. */
+  grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--space-3);
   row-gap: var(--space-2);
   align-items: start;
@@ -75,6 +77,14 @@
 .hero__skills-heading {
   font-size: var(--text-lg);
   color: var(--color-heading);
+}
+
+/* Press Start 2P renders much larger than the other fonts at a given size —
+   shrink the Doom card headings so they don't overwhelm the cards. */
+[data-theme='doom'] .hero__about-heading,
+[data-theme='doom'] .hero__skills-heading {
+  font-size: 0.82rem;
+  line-height: 1.7;
 }
 
 .hero__about-copy,
@@ -135,7 +145,7 @@
 
   /* Label + heading span the top; photo beside the copy below. */
   .hero__about-grid {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     column-gap: var(--space-4);
   }
 
