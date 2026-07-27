@@ -32,22 +32,43 @@
   min-width: 0;
 }
 
-/* About card: heading spans the top, then the photo sits beside the copy.
-   Mobile stacks (heading → photo → copy); wider screens go photo | copy. */
+/* About card grid.
+   Mobile:  r1 = label | photo,  r2 = heading | photo (photo spans r1–2),
+            r3 = copy spanning both columns.
+   ≥768:    label + heading span the top, photo beside the copy below. */
 .hero__about-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-3);
+  grid-template-columns: 1fr auto;
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
   align-items: start;
 }
 
+.hero__about-label {
+  grid-column: 1;
+  grid-row: 1;
+  margin-bottom: 0;
+}
+
+.hero__about-heading {
+  grid-column: 1;
+  grid-row: 2;
+}
+
 .hero__portrait {
-  /* Show the whole photo (no crop) at its natural aspect ratio */
-  width: 100%;
-  max-width: 240px;
+  /* Whole photo (no crop), small and top-aligned with the label on mobile */
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: start;
+  width: 92px;
   height: auto;
   border-radius: calc(var(--card-radius) * 0.75);
   border: var(--card-border);
+}
+
+.hero__about-copy {
+  grid-column: 1 / -1;
+  grid-row: 3;
 }
 
 .hero__about-heading,
@@ -112,18 +133,25 @@
     align-items: stretch;
   }
 
-  /* Photo beside the copy, heading spanning the top */
+  /* Label + heading span the top; photo beside the copy below. */
   .hero__about-grid {
     grid-template-columns: auto 1fr;
     column-gap: var(--space-4);
   }
 
+  .hero__about-label {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
   .hero__about-heading {
     grid-column: 1 / -1;
+    grid-row: 2;
   }
 
   .hero__portrait {
     grid-column: 1;
+    grid-row: 3; /* reset the mobile row span */
     width: 150px;
     /* Nudge down so the photo's top lines up with the copy's first line
        (which sits ~0.3em below its box top due to line-height leading). */
@@ -132,5 +160,6 @@
 
   .hero__about-copy {
     grid-column: 2;
+    grid-row: 3;
   }
 }

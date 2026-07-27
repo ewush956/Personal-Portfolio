@@ -38,8 +38,8 @@ export function Hero() {
 
         <div className="hero__cards">
           <motion.article className="card hero__about" {...stagger(2)}>
-            <span className="card__label">About Me</span>
             <div className="hero__about-grid">
+              <span className="card__label hero__about-label">About Me</span>
               <h2 className="hero__about-heading">Hi there! Welcome to my portfolio.</h2>
               <img
                 src={portrait}
