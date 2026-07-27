@@ -18,58 +18,65 @@ export interface Theme {
   label: string;
   /** One-line vibe shown as a tooltip / subtitle. */
   tagline: string;
+  /** Playful splash line shown under the switcher when this theme is active. */
+  splash: string;
   /** Two swatch colors used to preview the palette on the chip. */
   swatch: [string, string];
   /** Google Fonts stylesheet URLs, lazy-loaded the first time the theme is used. */
   fontLinks: string[];
 }
 
-export const DEFAULT_THEME: ThemeId = 'synthwave';
+export const DEFAULT_THEME: ThemeId = 'sleep-token';
 
 export const THEMES: Theme[] = [
-  {
-    id: 'synthwave',
-    label: 'Synthwave',
-    tagline: 'Neon cyan & pink on a midnight grid',
-    swatch: ['#06eeff', '#ff5cf4'],
-    fontLinks: [
-      'https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap',
-    ],
-  },
-  {
-    id: 'hacker-bro',
-    label: 'Hacker Bro',
-    tagline: 'Green-on-black terminal, scanlines and all',
-    swatch: ['#00ff9c', '#0a0f0a'],
-    fontLinks: [
-      'https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap',
-    ],
-  },
   {
     id: 'sleep-token',
     label: 'Sleep Token',
     tagline: 'Deep forest green & ritual gold',
+    splash: 'This is by far the classiest... but try the others :)',
     swatch: ['#c9a24b', '#0c1f17'],
     fontLinks: [
       'https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap',
     ],
   },
   {
-    id: 'editorial',
-    label: 'Editorial',
-    tagline: 'Warm paper, serif headlines, print calm',
-    swatch: ['#c2410c', '#f4efe6'],
+    id: 'synthwave',
+    label: 'Synthwave',
+    tagline: 'Neon cyan & pink on a midnight grid',
+    splash: 'Totally tubular! radical choice B)',
+    swatch: ['#06eeff', '#ff5cf4'],
     fontLinks: [
-      'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap',
+      'https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap',
     ],
   },
   {
     id: 'doom',
     label: 'Can It Run Doom?',
     tagline: 'Rust, blood & 8-bit hellfire',
+    splash: 'System requirements for doom are... screen...',
     swatch: ['#e8331b', '#1a0f0c'],
     fontLinks: [
       'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap',
+    ],
+  },
+  {
+    id: 'editorial',
+    label: 'Editorial',
+    tagline: 'Warm paper, serif headlines, print calm',
+    splash: 'Anthropic called, they want their theme back :P',
+    swatch: ['#c2410c', '#f4efe6'],
+    fontLinks: [
+      'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap',
+    ],
+  },
+  {
+    id: 'hacker-bro',
+    label: 'Hacker Bro',
+    tagline: 'Green-on-black terminal, scanlines and all',
+    splash: "Oh no! He's hacking into the mainframe!! :o",
+    swatch: ['#00ff9c', '#0a0f0a'],
+    fontLinks: [
+      'https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap',
     ],
   },
 ];

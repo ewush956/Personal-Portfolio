@@ -1,8 +1,21 @@
 import { motion, useReducedMotion } from 'motion/react';
+import { useTheme } from '../themes/useTheme';
+import type { ThemeId } from '../themes/registry';
 import { SkillsMarquee } from './SkillsMarquee';
 import './Hero.css';
 
+/** Per-theme portrait (same photo, theme-matched background). */
+const PROFILE: Record<ThemeId, string> = {
+  synthwave: '/images/synthwave-profile.png',
+  'sleep-token': '/images/sleep-token-profile.png',
+  doom: '/images/doom-profile.png',
+  editorial: '/images/editorial-profile.png',
+  'hacker-bro': '/images/hacker-bro-profile.png',
+};
+
 export function Hero() {
+  const { themeId } = useTheme();
+  const portrait = PROFILE[themeId] ?? '/images/picture_with_cat.png';
   const reduce = useReducedMotion();
   const stagger = (i: number) =>
     reduce
@@ -27,19 +40,18 @@ export function Hero() {
           <motion.article className="card hero__about" {...stagger(2)}>
             <span className="card__label">About Me</span>
             <div className="hero__about-grid">
+              <h2 className="hero__about-heading">Hi there! Welcome to my portfolio.</h2>
               <img
-                src="/images/picture_with_cat.png"
+                src={portrait}
                 alt="Portrait of Evan Wushke"
                 className="hero__portrait"
-                width="220"
-                height="220"
               />
-              <h2 className="hero__about-heading">Hi there! Welcome to my portfolio.</h2>
               <p className="hero__about-copy">
-                My education has pushed me through web development, systems programming,
-                algorithms, and low-level software. What keeps me interested is giving life to
-                creative thoughts and exploring how far computers can be pushed when design and
-                engineering meet.
+                I’ve had exposure to all ends of tech, but I’ve really taken a
+                liking to front-end development. I LOVE being creative, and working on the front
+                end lets me bring things to life. I’ll gladly continue to Google “How do I center a
+                div?”. I take pride in my work, so I always welcome feedback. We’re always
+                learning, so feel free to reach out so we can grow together!
               </p>
             </div>
           </motion.article>
@@ -50,9 +62,11 @@ export function Hero() {
               I&apos;ve learned a thing or two from building so many projects.
             </h2>
             <p className="hero__skills-copy">
-              Hands-on experience across modern frontend development, backend tooling, data work,
-              and systems-level programming — moving between languages and frameworks to fit the
-              problem.
+              I’ve been fortunate enough to have a lot of hands-on experience. As such, I’ve
+              picked up many languages, frameworks, technologies, etc. Really, in this age of AI,
+              the important thing is being able to recognize GOOD code and GOOD system design.
+              Lucky for me, I’ve had lots of practice with that, and I’ve developed an intuition
+              for production-ready code.
             </p>
             <SkillsMarquee />
           </motion.article>

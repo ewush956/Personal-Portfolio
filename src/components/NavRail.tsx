@@ -1,4 +1,5 @@
-import { useActiveSection } from '../hooks/useActiveSection';
+import { useTheme } from '../themes/useTheme';
+import { BRAND_ICONS } from '../themes/brandIcons';
 import {
   ChevronIcon,
   ContactIcon,
@@ -37,12 +38,13 @@ const EXTERNAL_ITEMS: NavItem[] = [
 ];
 
 interface NavRailProps {
+  active: string;
   collapsed: boolean;
   onToggle: () => void;
 }
 
-export function NavRail({ collapsed, onToggle }: NavRailProps) {
-  const active = useActiveSection(['top', 'projects', 'contact'], 'top');
+export function NavRail({ active, collapsed, onToggle }: NavRailProps) {
+  const { themeId } = useTheme();
 
   const renderItem = (item: NavItem) => {
     const isActive = item.sectionId === active;
@@ -67,7 +69,7 @@ export function NavRail({ collapsed, onToggle }: NavRailProps) {
   return (
     <nav className="rail" data-collapsed={collapsed} aria-label="Primary">
       <a className="rail__brand" href="#top" aria-label="Evan Wushke — home">
-        <span className="rail__brand-mark">EW</span>
+        <span className="rail__brand-mark">{BRAND_ICONS[themeId]}</span>
         <span className="rail__brand-full">Evan Wushke</span>
       </a>
 

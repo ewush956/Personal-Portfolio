@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
+import { useActiveSection } from './hooks/useActiveSection';
 import { Backgrounds } from './components/Backgrounds';
 import { NavRail } from './components/NavRail';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
@@ -19,12 +20,15 @@ export default function App() {
     localStorage.setItem(RAIL_STORAGE_KEY, String(collapsed));
   }, [collapsed]);
 
+  // Single scroll-spy observer, shared by the backgrounds and the nav rail.
+  const active = useActiveSection(['top', 'projects', 'contact'], 'top');
+
   const railWidth: CSSProperties = { ['--rail-w' as string]: collapsed ? '76px' : '216px' };
 
   return (
     <div className="app" style={railWidth}>
-      <Backgrounds />
-      <NavRail collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
+      <Backgrounds active={active} />
+      <NavRail active={active} collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       <div className="shell">
         <ThemeSwitcher />
         <main>

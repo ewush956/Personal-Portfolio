@@ -169,10 +169,12 @@ ul {
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
   padding: var(--card-pad);
+  /* box-shadow intentionally omitted — animating it forces per-frame repaints
+     across every card on theme switch. It snaps instead; transform (hover) and
+     colors stay animated and are cheap to composite. */
   transition:
     background 0.6s var(--ease),
     border-color 0.6s var(--ease),
-    box-shadow 0.3s var(--ease),
     transform 0.25s var(--ease);
 }
 

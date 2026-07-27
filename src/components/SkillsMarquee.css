@@ -12,6 +12,7 @@
   width: max-content;
   margin: 0;
   animation: marquee-scroll 32s linear infinite;
+  will-change: transform;
 }
 
 .marquee__item {

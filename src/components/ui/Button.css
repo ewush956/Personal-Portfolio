@@ -14,8 +14,7 @@
   transition:
     background var(--dur) var(--ease),
     color var(--dur) var(--ease),
-    transform 0.15s var(--ease),
-    box-shadow var(--dur) var(--ease);
+    transform 0.15s var(--ease);
 }
 
 .btn:active {

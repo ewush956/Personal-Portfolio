@@ -12,9 +12,13 @@
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
   background: var(--header-bg);
-  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
   border-top: 1px solid var(--color-border);
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Fixed size so --font-scale (e.g. Doom's 1.4x) can't inflate the rail text
+     and overflow the fixed-width rail. */
+  font-size: 0.95rem;
   transition: background 0.6s var(--ease), border-color 0.6s var(--ease);
 }
 
@@ -112,6 +116,7 @@
     padding: 0.4rem 0.55rem;
     margin-bottom: var(--space-4);
     color: var(--color-heading);
+    font-size: 1rem;
     font-weight: 700;
     letter-spacing: 0.02em;
   }
@@ -126,7 +131,11 @@
     border-radius: calc(var(--btn-radius) * 0.4);
     background: var(--tag-bg);
     color: var(--color-accent);
-    font-size: 0.78rem;
+  }
+
+  .rail__brand-mark svg {
+    width: 20px;
+    height: 20px;
   }
 
   .rail__brand-full {

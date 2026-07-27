@@ -32,16 +32,20 @@
   min-width: 0;
 }
 
+/* About card: heading spans the top, then the photo sits beside the copy.
+   Mobile stacks (heading → photo → copy); wider screens go photo | copy. */
 .hero__about-grid {
   display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-3);
-  justify-items: start;
+  align-items: start;
 }
 
 .hero__portrait {
-  width: clamp(120px, 40vw, 180px);
-  aspect-ratio: 1;
-  object-fit: cover;
+  /* Show the whole photo (no crop) at its natural aspect ratio */
+  width: 100%;
+  max-width: 240px;
+  height: auto;
   border-radius: calc(var(--card-radius) * 0.75);
   border: var(--card-border);
 }
@@ -55,7 +59,6 @@
 .hero__about-copy,
 .hero__skills-copy {
   color: var(--color-text);
-  margin-top: var(--space-2);
 }
 
 .hero__skills {
@@ -109,9 +112,9 @@
     align-items: stretch;
   }
 
+  /* Photo beside the copy, heading spanning the top */
   .hero__about-grid {
     grid-template-columns: auto 1fr;
-    align-items: center;
     column-gap: var(--space-4);
   }
 
@@ -119,23 +122,12 @@
     grid-column: 1 / -1;
   }
 
-  .hero__about-copy {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (min-width: 1024px) {
-  .hero__about-grid {
-    grid-template-columns: auto 1fr;
-  }
-
   .hero__portrait {
-    grid-row: span 2;
-    width: 160px;
-  }
-
-  .hero__about-heading {
-    grid-column: 2;
+    grid-column: 1;
+    width: 150px;
+    /* Nudge down so the photo's top lines up with the copy's first line
+       (which sits ~0.3em below its box top due to line-height leading). */
+    margin-top: 0.3em;
   }
 
   .hero__about-copy {

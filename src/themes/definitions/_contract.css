@@ -37,7 +37,7 @@ body::before {
   background-image: var(--atmos, none);
   background-size: var(--atmos-size, auto);
   opacity: var(--atmos-opacity, 1);
-  transition: opacity 0.6s var(--ease, ease);
+  transition: opacity 0.6s ease-out;
 }
 
 body::after {
@@ -48,5 +48,5 @@ body::after {
   z-index: -1;
   pointer-events: none;
   background: var(--vignette, none);
-  transition: background 0.6s var(--ease, ease);
+  transition: background 0.6s ease-out;
 }

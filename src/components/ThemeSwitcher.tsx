@@ -2,14 +2,16 @@ import { useTheme } from '../themes/useTheme';
 import './ThemeSwitcher.css';
 
 export function ThemeSwitcher() {
-  const { themes, themeId, setTheme } = useTheme();
+  const { themes, theme, themeId, setTheme } = useTheme();
 
   return (
     <section className="themes" aria-label="Site themes">
       <div className="container themes__inner">
         <div className="themes__intro">
           <span className="themes__eyebrow">Themes</span>
-          <p className="themes__hint">Pick a vibe — the whole site re-skins.</p>
+          <p className="themes__hint" key={themeId}>
+            {theme.splash}
+          </p>
         </div>
         <div className="themes__list" role="radiogroup" aria-label="Choose a theme">
           {themes.map((theme) => {

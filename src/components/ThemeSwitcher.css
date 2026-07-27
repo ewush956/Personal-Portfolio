@@ -4,7 +4,8 @@
   z-index: 40;
   padding-block: var(--space-3);
   background: var(--header-bg);
-  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
   border-bottom: 1px solid var(--color-border);
   transition: background 0.6s var(--ease), border-color 0.6s var(--ease);
   /* The switcher is a control panel: keep its typography theme-independent so
@@ -18,6 +19,15 @@
   gap: var(--space-3);
 }
 
+/* Intro block: "THEMES" with the splash line underneath */
+.themes__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  row-gap: 2px;
+  flex: 0 0 auto;
+}
+
 .themes__eyebrow {
   font-family: inherit;
   font-size: var(--text-sm);
@@ -28,15 +38,36 @@
 }
 
 .themes__hint {
-  font-size: var(--text-sm);
+  font-size: 0.78rem;
+  font-style: italic;
   color: var(--color-muted);
   margin: 0;
+  white-space: nowrap; /* keep the splash line on a single line */
+  /* Re-mounts on theme change (keyed by themeId) — fade the new splash in */
+  animation: splash-in 0.45s ease-out;
+}
+
+@keyframes splash-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .themes__hint {
+    animation: none;
+  }
 }
 
 /* Mobile-first: horizontally scrollable row of chips */
 .themes__list {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-1);
   overflow-x: auto;
   padding-bottom: 2px;
   scrollbar-width: none;
@@ -51,9 +82,9 @@
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 0.55em;
+  gap: 0.45em;
   min-height: 40px;
-  padding: 0.5em 0.9em;
+  padding: 0.5em 0.7em;
   border: 1px solid var(--color-border);
   border-radius: var(--btn-radius);
   background: var(--color-surface);
@@ -92,17 +123,25 @@
   line-height: 1;
 }
 
-/* Wider screens: intro sits beside the chips, chips wrap instead of scroll */
+/* Chips never wrap to a second row; on a rare tight width they scroll. */
+.themes__list {
+  flex-wrap: nowrap;
+}
+
+/* Wider screens: intro on the left, chips hugging the right — all one row.
+   margin-left:auto pushes the chips right when there's room, and collapses so
+   they shrink+scroll (never wrap) if space gets tight, keeping the first chip
+   visible. */
 @media (min-width: 768px) {
   .themes__inner {
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
+    gap: var(--space-4);
   }
 
   .themes__list {
-    overflow-x: visible;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    margin-left: auto;
+    min-width: 0;
+    justify-content: flex-start;
   }
 }
