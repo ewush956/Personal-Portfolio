@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useActiveSection } from '../hooks/useActiveSection';
 import './Backgrounds.css';
 
-/** Section id in the DOM → background layer token. */
-const SECTIONS = [
-  { key: 'hero', domId: 'top', varName: '--bg-hero' },
-  { key: 'projects', domId: 'projects', varName: '--bg-projects' },
-  { key: 'contact', domId: 'contact', varName: '--bg-contact' },
+/** DOM section id → background layer token. */
+const LAYERS = [
+  { domId: 'top', varName: '--bg-hero' },
+  { domId: 'projects', varName: '--bg-projects' },
+  { domId: 'contact', varName: '--bg-contact' },
 ] as const;
 
-type SectionKey = (typeof SECTIONS)[number]['key'];
+const SECTION_IDS = LAYERS.map((l) => l.domId);
 
 /**
  * Fixed, full-viewport background layers that cross-fade (with a subtle zoom)
@@ -16,44 +16,14 @@ type SectionKey = (typeof SECTIONS)[number]['key'];
  * scroll-driven background transitions, but theme-aware and per-section.
  */
 export function Backgrounds() {
-  const [active, setActive] = useState<SectionKey>('hero');
-
-  useEffect(() => {
-    const ratios = new Map<SectionKey, number>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const match = SECTIONS.find((s) => s.domId === entry.target.id);
-          if (match) ratios.set(match.key, entry.isIntersecting ? entry.intersectionRatio : 0);
-        }
-        // The most-visible section wins.
-        let best: SectionKey = 'hero';
-        let bestRatio = -1;
-        for (const { key } of SECTIONS) {
-          const r = ratios.get(key) ?? 0;
-          if (r > bestRatio) {
-            bestRatio = r;
-            best = key;
-          }
-        }
-        setActive(best);
-      },
-      { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1], rootMargin: '-15% 0px -15% 0px' },
-    );
-
-    for (const { domId } of SECTIONS) {
-      const el = document.getElementById(domId);
-      if (el) observer.observe(el);
-    }
-    return () => observer.disconnect();
-  }, []);
+  const active = useActiveSection(SECTION_IDS, 'top');
 
   return (
     <div className="backgrounds" aria-hidden="true">
-      {SECTIONS.map(({ key, varName }) => (
+      {LAYERS.map(({ domId, varName }) => (
         <div
-          key={key}
-          className={`bg-layer${active === key ? ' bg-layer--active' : ''}`}
+          key={domId}
+          className={`bg-layer${active === domId ? ' bg-layer--active' : ''}`}
           style={{ background: `var(${varName})` }}
         />
       ))}

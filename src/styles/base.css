@@ -120,6 +120,22 @@ ul {
   border-radius: 4px;
 }
 
+/* App shell — makes room for the nav rail (bottom bar on mobile, left rail on
+   desktop). --rail-w is set on .app by React based on the collapsed state. */
+.shell {
+  position: relative;
+  min-height: 100dvh;
+  padding-bottom: 68px; /* clear the mobile bottom bar */
+}
+
+@media (min-width: 768px) {
+  .shell {
+    padding-bottom: 0;
+    padding-left: var(--rail-w, 216px);
+    transition: padding-left 0.3s var(--ease);
+  }
+}
+
 /* Shared layout helpers --------------------------------------------------- */
 .container {
   width: 100%;
