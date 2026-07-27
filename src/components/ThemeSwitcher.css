@@ -155,7 +155,9 @@
   background: var(--color-surface);
   color: var(--color-muted);
   font-family: inherit;
-  font-size: var(--text-sm);
+  /* Slightly smaller than --text-sm so the chip row is more compact, leaving
+     room for the splash line (e.g. "can it run doom?") to stay on one line. */
+  font-size: clamp(0.72rem, 0.68rem + 0.15vw, 0.8rem);
   font-weight: 600;
   letter-spacing: 0.02em;
   white-space: nowrap;
@@ -189,7 +191,10 @@
 
 .theme-chip__label {
   line-height: 1;
-  max-width: 12ch;
+  /* Wide enough for the longest label ("Can It Run Doom?") to show in full.
+     Kept as a concrete length (not `none`) because the condense animation
+     transitions this down to 0 to collapse the label into a circle. */
+  max-width: 17ch;
   overflow: hidden;
   opacity: 1;
   transition:
