@@ -136,6 +136,7 @@ export function ThemeSwitcher() {
     const section = list.closest('.themes') as HTMLElement;
     const inner = list.parentElement as HTMLElement;
     const intro = section.querySelector<HTMLElement>('.themes__intro');
+    const top = section.querySelector<HTMLElement>('.themes__top');
     const chips = Array.from(list.children) as HTMLElement[];
 
     animsRef.current.forEach((a) => a.cancel());
@@ -144,7 +145,7 @@ export function ThemeSwitcher() {
     // Measure the true final height with transitions frozen (so it's not a
     // mid-transition frame), then animate the bar from its old height to it.
     if (fromH != null) {
-      const frozen = [section, inner, intro, ...chips].filter(Boolean) as HTMLElement[];
+      const frozen = [section, inner, intro, top, ...chips].filter(Boolean) as HTMLElement[];
       frozen.forEach((el) => {
         el.style.transition = 'none';
       });
@@ -189,6 +190,14 @@ export function ThemeSwitcher() {
           ),
         );
       });
+      if (top) {
+        top.animate([{ opacity: 0 }, { opacity: 1 }], {
+          duration: 240,
+          delay: CIRCLE_START + chips.length * STAGGER_MS + 40,
+          easing: 'ease-out',
+          fill: 'backwards',
+        });
+      }
     } else {
       // Returning to expanded: the full chips + intro fade back in (no morph).
       if (intro) {
@@ -218,6 +227,12 @@ export function ThemeSwitcher() {
     };
   }, [phase]);
 
+  const scrollToTop = () => {
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+  };
+
+  const isCondensed = phase === 'condensed';
   const stateClass =
     phase === 'condensed'
       ? ' themes--condensed'
@@ -230,6 +245,28 @@ export function ThemeSwitcher() {
   return (
     <section className={`themes${stateClass}`} aria-label="Site themes">
       <div className="container themes__inner">
+        <button
+          type="button"
+          className="themes__top"
+          onClick={scrollToTop}
+          tabIndex={isCondensed ? 0 : -1}
+          aria-hidden={!isCondensed}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 19V5M5 12l7-7 7 7" />
+          </svg>
+          <span>Top</span>
+        </button>
         <div className="themes__intro">
           <span className="themes__eyebrow">Themes</span>
           <p className="themes__hint" key={themeId}>
