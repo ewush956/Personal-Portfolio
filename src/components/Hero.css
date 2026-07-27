@@ -27,6 +27,11 @@
   gap: var(--space-4);
 }
 
+/* Let cards shrink so the skills marquee can clip instead of blowing out the grid */
+.hero__cards > .card {
+  min-width: 0;
+}
+
 .hero__about-grid {
   display: grid;
   gap: var(--space-3);
@@ -101,7 +106,7 @@
 
   .hero__cards {
     grid-template-columns: 1fr 1fr;
-    align-items: start;
+    align-items: stretch;
   }
 
   .hero__about-grid {

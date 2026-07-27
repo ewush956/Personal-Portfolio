@@ -7,6 +7,9 @@
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--color-border);
   transition: background 0.6s var(--ease), border-color 0.6s var(--ease);
+  /* The switcher is a control panel: keep its typography theme-independent so
+     clicking a chip re-skins the page WITHOUT resizing/moving the chips. */
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 .themes__inner {
@@ -16,9 +19,9 @@
 }
 
 .themes__eyebrow {
-  font-family: var(--font-display);
+  font-family: inherit;
   font-size: var(--text-sm);
-  font-weight: var(--font-weight-display);
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.2em;
   color: var(--color-accent);
@@ -49,15 +52,16 @@
   display: inline-flex;
   align-items: center;
   gap: 0.55em;
+  min-height: 40px;
   padding: 0.5em 0.9em;
   border: 1px solid var(--color-border);
   border-radius: var(--btn-radius);
   background: var(--color-surface);
   color: var(--color-muted);
-  font-family: var(--font-display);
+  font-family: inherit;
   font-size: var(--text-sm);
-  font-weight: var(--font-weight-display);
-  letter-spacing: var(--heading-tracking);
+  font-weight: 600;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   transition:
     color 0.25s var(--ease),
