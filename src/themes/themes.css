@@ -1,0 +1,11 @@
+/* ==========================================================================
+   Theme aggregator. Each theme is defined in its own file under definitions/.
+   To add a theme: create definitions/<id>.css (see _contract.css), add an entry
+   to registry.ts, and @import the file below.
+   ========================================================================== */
+@import './definitions/_contract.css';
+@import './definitions/synthwave.css';
+@import './definitions/hacker-bro.css';
+@import './definitions/sleep-token.css';
+@import './definitions/editorial.css';
+@import './definitions/doom.css';

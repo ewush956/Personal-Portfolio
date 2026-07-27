@@ -1,0 +1,62 @@
+/* ==========================================================================
+   EDITORIAL — warm paper, serif headlines, ink accents, print calm (light)
+   ========================================================================== */
+[data-theme='editorial'] {
+  color-scheme: light;
+  --color-bg: #f4efe6;
+  --color-bg-2: #ece5d8;
+  --bg-scrim: linear-gradient(180deg, rgba(246, 241, 232, 0.86), rgba(239, 232, 219, 0.9));
+  --bg-fallback: linear-gradient(180deg, #f6f1e8, #efe8db);
+  --bg-hero: var(--bg-scrim),
+    url('/images/backgrounds/editorial-hero.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --bg-projects: var(--bg-scrim),
+    url('/images/backgrounds/editorial-projects.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --bg-contact: var(--bg-scrim),
+    url('/images/backgrounds/editorial-contact.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --color-surface: #fffdf8;
+  --color-surface-2: #faf6ee;
+  --color-text: #211d17;
+  --color-heading: #14110d;
+  --color-muted: #6b6154;
+  --color-accent: #c2410c;
+  --color-accent-2: #9a2f0a;
+  --color-accent-contrast: #fffdf8;
+  --color-border: rgba(33, 29, 23, 0.16);
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Newsreader', Georgia, serif;
+  --font-weight-display: 800;
+  --heading-transform: none;
+  --heading-tracking: -0.01em;
+  --font-scale: 1.05;
+  --display-scale: 1;
+
+  --card-bg: #fffdf8;
+  --card-border: 1px solid rgba(33, 29, 23, 0.16);
+  --card-radius: 3px;
+  --card-shadow: 0 1px 0 rgba(33, 29, 23, 0.06), 0 22px 40px -30px rgba(33, 29, 23, 0.5);
+  --card-pad: clamp(1.4rem, 3.5vw, 2.4rem);
+
+  --btn-bg: #211d17;
+  --btn-fg: #f6f1e8;
+  --btn-border: 1px solid #211d17;
+  --btn-radius: 2px;
+  --btn-shadow: none;
+  --btn-hover-bg: #c2410c;
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur: 0.5s;
+
+  --header-bg: rgba(246, 241, 232, 0.82);
+  --tag-bg: rgba(194, 65, 12, 0.1);
+  --tag-fg: #9a2f0a;
+
+  --heading-glow: none;
+  --atmos: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  --atmos-size: 120px 120px;
+  --atmos-opacity: 1;
+  --vignette: none;
+}

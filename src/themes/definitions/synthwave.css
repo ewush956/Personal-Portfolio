@@ -1,0 +1,64 @@
+/* ==========================================================================
+   SYNTHWAVE — retro-futuristic neon, midnight grid, glowing chrome (default)
+   ========================================================================== */
+[data-theme='synthwave'] {
+  --color-bg: #0a0616;
+  --color-bg-2: #1a0b34;
+  --bg-scrim: linear-gradient(180deg, rgba(5, 3, 15, 0.55), rgba(5, 3, 15, 0.78));
+  --bg-fallback: radial-gradient(120% 90% at 50% -10%, #2a1155 0%, #12082b 45%, #05030f 100%);
+  /* Synthwave reuses the original site's imagery so the default theme is
+     complete out of the box. Swap to /backgrounds/synthwave-*.jpg to customise. */
+  --bg-hero: var(--bg-scrim),
+    url('/images/home-bg.avif') center center / cover no-repeat,
+    var(--bg-fallback);
+  --bg-projects: var(--bg-scrim),
+    url('/images/projects-bg.avif') center center / cover no-repeat,
+    var(--bg-fallback);
+  --bg-contact: var(--bg-scrim),
+    url('/images/projects-bg.avif') center center / cover no-repeat,
+    var(--bg-fallback);
+  --color-surface: rgba(20, 10, 44, 0.72);
+  --color-surface-2: rgba(30, 16, 60, 0.85);
+  --color-text: #e9e6ff;
+  --color-heading: #ffffff;
+  --color-muted: #a99fd6;
+  --color-accent: #06eeff;
+  --color-accent-2: #ff5cf4;
+  --color-accent-contrast: #05030f;
+  --color-border: rgba(6, 238, 255, 0.35);
+
+  --font-display: 'Comfortaa', system-ui, sans-serif;
+  --font-body: 'Comfortaa', system-ui, sans-serif;
+  --font-weight-display: 700;
+  --heading-transform: none;
+  --heading-tracking: normal;
+  --font-scale: 1;
+  --display-scale: 1;
+
+  --card-bg: linear-gradient(160deg, rgba(30, 14, 60, 0.82), rgba(12, 6, 30, 0.9));
+  --card-border: 1px solid rgba(6, 238, 255, 0.35);
+  --card-radius: 18px;
+  --card-shadow: 0 0 0 1px rgba(255, 92, 244, 0.08), 0 18px 50px -20px rgba(6, 238, 255, 0.45);
+  --card-pad: clamp(1.25rem, 3vw, 2rem);
+
+  --btn-bg: transparent;
+  --btn-fg: #06eeff;
+  --btn-border: 1px solid #06eeff;
+  --btn-radius: 999px;
+  --btn-shadow: 0 0 18px -4px rgba(6, 238, 255, 0.6);
+  --btn-hover-bg: rgba(6, 238, 255, 0.12);
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 0.55s;
+
+  --header-bg: rgba(8, 4, 20, 0.55);
+  --tag-bg: rgba(6, 238, 255, 0.12);
+  --tag-fg: #7ff6ff;
+
+  --heading-glow: 0 0 24px rgba(6, 238, 255, 0.45);
+  --atmos: repeating-linear-gradient(0deg, rgba(255, 92, 244, 0.05) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg, rgba(6, 238, 255, 0.05) 0 1px, transparent 1px 44px);
+  --atmos-size: 44px 44px;
+  --atmos-opacity: 1;
+  --vignette: radial-gradient(120% 80% at 50% 120%, rgba(255, 92, 244, 0.18), transparent 60%);
+}

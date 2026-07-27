@@ -1,0 +1,62 @@
+/* ==========================================================================
+   CAN IT RUN DOOM? — rust & blood, 8-bit pixel type, chunky beveled metal
+   ========================================================================== */
+[data-theme='doom'] {
+  --color-bg: #140a08;
+  --color-bg-2: #1a0f0c;
+  --bg-scrim: linear-gradient(180deg, rgba(10, 6, 5, 0.6), rgba(10, 6, 5, 0.82));
+  --bg-fallback: radial-gradient(120% 90% at 50% -10%, #3a120a 0%, #1a0d09 45%, #0a0605 100%);
+  --bg-hero: var(--bg-scrim),
+    url('/images/backgrounds/doom-hero.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --bg-projects: var(--bg-scrim),
+    url('/images/backgrounds/doom-projects.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --bg-contact: var(--bg-scrim),
+    url('/images/backgrounds/doom-contact.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
+  --color-surface: rgba(28, 15, 11, 0.9);
+  --color-surface-2: rgba(40, 20, 14, 0.92);
+  --color-text: #d8cabb;
+  --color-heading: #ff5a2b;
+  --color-muted: #9c6f56;
+  --color-accent: #e8331b;
+  --color-accent-2: #ff9a1f;
+  --color-accent-contrast: #0a0605;
+  --color-border: rgba(232, 51, 27, 0.5);
+
+  --font-display: 'Press Start 2P', ui-monospace, monospace;
+  --font-body: 'VT323', ui-monospace, monospace;
+  --font-weight-display: 400;
+  --heading-transform: uppercase;
+  --heading-tracking: 0.02em;
+  --font-scale: 1.15;
+  --display-scale: 0.5;
+
+  --card-bg: linear-gradient(170deg, rgba(42, 22, 16, 0.95), rgba(20, 10, 8, 0.96));
+  --card-border: 2px solid #e8331b;
+  --card-radius: 0px;
+  --card-shadow: 6px 6px 0 rgba(0, 0, 0, 0.6), inset 0 0 0 2px rgba(255, 154, 31, 0.15);
+  --card-pad: clamp(1.25rem, 3vw, 2rem);
+
+  --btn-bg: #e8331b;
+  --btn-fg: #0a0605;
+  --btn-border: 2px solid #ff9a1f;
+  --btn-radius: 0px;
+  --btn-shadow: 4px 4px 0 rgba(0, 0, 0, 0.7);
+  --btn-hover-bg: #ff9a1f;
+
+  --ease: steps(4, end);
+  --dur: 0.25s;
+
+  --header-bg: rgba(12, 6, 5, 0.85);
+  --tag-bg: rgba(232, 51, 27, 0.16);
+  --tag-fg: #ff9a1f;
+
+  --heading-glow: 0 0 18px rgba(232, 51, 27, 0.55);
+  --atmos: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0 2px, transparent 2px 4px),
+    radial-gradient(circle at 50% 0%, rgba(232, 51, 27, 0.16), transparent 55%);
+  --atmos-size: auto;
+  --atmos-opacity: 0.7;
+  --vignette: radial-gradient(120% 100% at 50% 50%, transparent 45%, rgba(0, 0, 0, 0.85) 100%);
+}

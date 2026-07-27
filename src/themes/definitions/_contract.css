@@ -1,0 +1,52 @@
+/* ==========================================================================
+   Theme contract + shared atmosphere layers.
+
+   Each theme lives in its own file in this folder (synthwave.css, doom.css, …)
+   and is registered in ../themes.css. Adding a theme:
+     1. Create `definitions/<id>.css` defining the TOKEN CONTRACT below.
+     2. Add an entry to ../registry.ts.
+     3. @import the new file in ../themes.css.
+   Components read ONLY these tokens — never hard-coded colors/fonts.
+
+   TOKEN CONTRACT (every theme must define all of these):
+     Colors : --color-bg --color-bg-2 --color-surface --color-surface-2
+              --color-text --color-heading --color-muted
+              --color-accent --color-accent-2 --color-accent-contrast --color-border
+     Backds : --bg-scrim --bg-fallback (helpers) then the 3 section layers:
+              --bg-hero --bg-projects --bg-contact  (each: scrim, image, fallback)
+     Type   : --font-display --font-body --font-weight-display
+              --heading-transform --heading-tracking --font-scale --display-scale
+     Card   : --card-bg --card-border --card-radius --card-shadow --card-pad
+     Button : --btn-bg --btn-fg --btn-border --btn-radius --btn-shadow --btn-hover-bg
+     Motion : --ease --dur
+     Chrome : --header-bg --tag-bg --tag-fg
+     Atmos  : --atmos (fixed texture) --atmos-size --atmos-opacity --vignette --heading-glow
+
+   Section background images live in /public/images/backgrounds/ as
+   <theme>-hero.jpg, <theme>-projects.jpg, <theme>-contact.jpg. Missing files
+   fall back to --bg-fallback (a gradient), so nothing ever looks broken.
+   ========================================================================== */
+
+body::before {
+  /* Texture layer: grids, scanlines, grain */
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image: var(--atmos, none);
+  background-size: var(--atmos-size, auto);
+  opacity: var(--atmos-opacity, 1);
+  transition: opacity 0.6s ease-out;
+}
+
+body::after {
+  /* Vignette / mood layer */
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--vignette, none);
+  transition: background 0.6s ease-out;
+}

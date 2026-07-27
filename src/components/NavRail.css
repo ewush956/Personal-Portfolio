@@ -1,0 +1,202 @@
+/* ==========================================================================
+   NavRail — mobile-first bottom icon bar → collapsible left rail on desktop.
+   Typography is neutral/stable (it's a control), like the theme switcher.
+   ========================================================================== */
+.rail {
+  position: fixed;
+  z-index: 50;
+  inset: auto 0 0 0; /* pinned to bottom on mobile */
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--header-bg);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  border-top: 1px solid var(--color-border);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Fixed size so --font-scale (e.g. Doom's 1.4x) can't inflate the rail text
+     and overflow the fixed-width rail. */
+  font-size: 0.95rem;
+  transition: background 0.6s var(--ease), border-color 0.6s var(--ease);
+}
+
+/* Flatten ul/li so the <a>s distribute evenly across the bottom bar */
+.rail ul,
+.rail li {
+  display: contents;
+}
+
+.rail__brand,
+.rail__toggle {
+  display: none; /* hidden on mobile bottom bar */
+}
+
+.rail__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--btn-radius);
+  color: var(--color-muted);
+  transition: color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.rail__link:hover {
+  color: var(--color-text);
+}
+
+.rail__link--active {
+  color: var(--color-accent);
+  background: var(--tag-bg);
+}
+
+.rail__icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+}
+
+.rail__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.rail__label {
+  display: none; /* icon-only on mobile */
+}
+
+/* Mobile only: push Resume to the far right (end) of the bottom bar */
+.rail__link[data-rail-id='resume'] {
+  order: 1;
+}
+
+/* ---- Desktop: full-height collapsible left rail --------------------------- */
+@media (min-width: 768px) {
+  .rail {
+    inset: 0 auto 0 0;
+    width: var(--rail-w, 216px);
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-3);
+    border-top: none;
+    border-right: 1px solid var(--color-border);
+    overflow: hidden;
+    transition:
+      width 0.3s var(--ease),
+      background 0.6s var(--ease),
+      border-color 0.6s var(--ease);
+  }
+
+  .rail ul,
+  .rail li {
+    display: block;
+  }
+
+  .rail__group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .rail__group--external {
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .rail__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    padding: 0.4rem 0.55rem;
+    margin-bottom: var(--space-4);
+    color: var(--color-heading);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .rail__brand-mark {
+    flex: 0 0 auto;
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--color-border);
+    border-radius: calc(var(--btn-radius) * 0.4);
+    background: var(--tag-bg);
+    color: var(--color-accent);
+  }
+
+  .rail__brand-mark svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .rail__brand-full {
+    white-space: nowrap;
+  }
+
+  .rail__link {
+    width: 100%;
+    height: auto;
+    justify-content: flex-start;
+    gap: 0.9em;
+    padding: 0.65rem 0.6rem;
+  }
+
+  .rail__label {
+    display: inline;
+    white-space: nowrap;
+    font-size: 0.95rem;
+  }
+
+  .rail__toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.9em;
+    width: 100%;
+    margin-top: auto; /* pin to bottom of the rail */
+    padding: 0.65rem 0.6rem;
+    border-radius: var(--btn-radius);
+    color: var(--color-muted);
+    transition: color 0.2s var(--ease);
+  }
+
+  .rail__toggle:hover {
+    color: var(--color-text);
+  }
+
+  .rail__toggle-icon {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    transition: transform 0.3s var(--ease);
+  }
+
+  .rail__toggle-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .rail__toggle-icon[data-collapsed='true'] {
+    transform: rotate(180deg); /* chevron points right when collapsed */
+  }
+
+  /* Collapsed: hide all text, center the icons */
+  .rail[data-collapsed='true'] .rail__label,
+  .rail[data-collapsed='true'] .rail__brand-full {
+    display: none;
+  }
+
+  .rail[data-collapsed='true'] .rail__link,
+  .rail[data-collapsed='true'] .rail__toggle,
+  .rail[data-collapsed='true'] .rail__brand {
+    justify-content: center;
+  }
+}

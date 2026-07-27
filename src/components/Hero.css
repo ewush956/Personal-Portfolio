@@ -1,0 +1,165 @@
+.hero {
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-8);
+}
+
+.hero__eyebrow {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-display);
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  color: var(--color-accent);
+  margin-bottom: var(--space-2);
+}
+
+.hero__title {
+  font-size: var(--text-3xl);
+  color: var(--color-heading);
+  text-shadow: var(--heading-glow);
+  margin-bottom: var(--space-6);
+  overflow-wrap: break-word;
+}
+
+/* Mobile-first: single column of cards */
+.hero__cards {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* Let cards shrink so the skills marquee can clip instead of blowing out the grid */
+.hero__cards > .card {
+  min-width: 0;
+}
+
+/* About card grid.
+   Mobile:  r1 = label | photo,  r2 = heading | photo (photo spans r1–2),
+            r3 = copy spanning both columns.
+   ≥768:    label + heading span the top, photo beside the copy below. */
+.hero__about-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
+  align-items: start;
+}
+
+.hero__about-label {
+  grid-column: 1;
+  grid-row: 1;
+  margin-bottom: 0;
+}
+
+.hero__about-heading {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.hero__portrait {
+  /* Whole photo (no crop), small and top-aligned with the label on mobile */
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: start;
+  width: 92px;
+  height: auto;
+  border-radius: calc(var(--card-radius) * 0.75);
+  border: var(--card-border);
+}
+
+.hero__about-copy {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+.hero__about-heading,
+.hero__skills-heading {
+  font-size: var(--text-lg);
+  color: var(--color-heading);
+}
+
+.hero__about-copy,
+.hero__skills-copy {
+  color: var(--color-text);
+}
+
+.hero__skills {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-top: var(--space-6);
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-display);
+  font-size: var(--text-base);
+  text-transform: var(--heading-transform);
+  letter-spacing: var(--heading-tracking);
+  color: var(--color-accent);
+}
+
+.hero__cta-arrow {
+  display: inline-block;
+  animation: hero-bob 1.8s ease-in-out infinite;
+}
+
+@keyframes hero-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__cta-arrow {
+    animation: none;
+  }
+}
+
+/* Wider: two-column card layout, portrait beside copy */
+@media (min-width: 768px) {
+  .hero {
+    padding-top: var(--space-8);
+  }
+
+  .hero__cards {
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+  }
+
+  /* Label + heading span the top; photo beside the copy below. */
+  .hero__about-grid {
+    grid-template-columns: auto 1fr;
+    column-gap: var(--space-4);
+  }
+
+  .hero__about-label {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .hero__about-heading {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .hero__portrait {
+    grid-column: 1;
+    grid-row: 3; /* reset the mobile row span */
+    width: 150px;
+    /* Nudge down so the photo's top lines up with the copy's first line
+       (which sits ~0.3em below its box top due to line-height leading). */
+    margin-top: 0.3em;
+  }
+
+  .hero__about-copy {
+    grid-column: 2;
+    grid-row: 3;
+  }
+}

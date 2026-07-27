@@ -1,0 +1,10 @@
+.projects__grid {
+  display: grid;
+  gap: var(--space-5);
+}
+
+@media (min-width: 768px) {
+  .projects__grid {
+    gap: var(--space-6);
+  }
+}

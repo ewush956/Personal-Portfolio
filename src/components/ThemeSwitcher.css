@@ -1,0 +1,147 @@
+.themes {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding-block: var(--space-3);
+  background: var(--header-bg);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.6s var(--ease), border-color 0.6s var(--ease);
+  /* The switcher is a control panel: keep its typography theme-independent so
+     clicking a chip re-skins the page WITHOUT resizing/moving the chips. */
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.themes__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Intro block: "THEMES" with the splash line underneath */
+.themes__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  row-gap: 2px;
+  flex: 0 0 auto;
+}
+
+.themes__eyebrow {
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--color-accent);
+}
+
+.themes__hint {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--color-muted);
+  margin: 0;
+  white-space: nowrap; /* keep the splash line on a single line */
+  /* Re-mounts on theme change (keyed by themeId) — fade the new splash in */
+  animation: splash-in 0.45s ease-out;
+}
+
+@keyframes splash-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .themes__hint {
+    animation: none;
+  }
+}
+
+/* Mobile-first: horizontally scrollable row of chips */
+.themes__list {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.themes__list::-webkit-scrollbar {
+  display: none;
+}
+
+.theme-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  min-height: 40px;
+  padding: 0.5em 0.7em;
+  border: 1px solid var(--color-border);
+  border-radius: var(--btn-radius);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition:
+    color 0.25s var(--ease),
+    border-color 0.25s var(--ease),
+    background 0.25s var(--ease),
+    transform 0.15s var(--ease);
+}
+
+.theme-chip:hover {
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+.theme-chip--active {
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.theme-chip__swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25) inset;
+}
+
+.theme-chip__label {
+  line-height: 1;
+}
+
+/* Chips never wrap to a second row; on a rare tight width they scroll. */
+.themes__list {
+  flex-wrap: nowrap;
+}
+
+/* Wider screens: intro on the left, chips hugging the right — all one row.
+   margin-left:auto pushes the chips right when there's room, and collapses so
+   they shrink+scroll (never wrap) if space gets tight, keeping the first chip
+   visible. */
+@media (min-width: 768px) {
+  .themes__inner {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .themes__list {
+    margin-left: auto;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+}

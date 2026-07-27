@@ -1,52 +1,45 @@
 # Personal Portfolio
 
-Welcome to my personal portfolio! This website showcases my skills, projects, and contact information.
+My personal portfolio, rebuilt in **React + TypeScript (Vite)** with a swappable
+multi-theme system. Live at **[wushke.ca](https://wushke.ca)**.
 
-## Live Site
+## Themes
 
-You can view the live site here: [Personal Portfolio](https://ewush956.github.io/Personal-Portfolio/)
+A "Themes" switcher at the top re-skins the entire site — colors, fonts, card
+styles, backgrounds, and motion. Launch themes: **Synthwave**, **Hacker Bro**,
+**Sleep Token**, **Editorial**, and **Can It Run Doom?**.
 
-## About
+### Adding a theme
 
-This portfolio is designed to highlight my experience and projects in software development. It includes sections for my skills, projects, and contact information.
+The system is built to extend. To add a theme:
 
-## Features
+1. Add an entry to `src/themes/registry.ts`.
+2. Create `src/themes/definitions/<id>.css` implementing the token contract
+   (see `src/themes/definitions/_contract.css`).
+3. `@import` the new file in `src/themes/themes.css`.
 
-- **Skills Section**: A detailed list of my technical skills.
-- **Projects Section**: Showcases my projects with descriptions and links to the source code.
-- **Contact Section**: Provides a way to get in touch with me.
+No component changes needed — it appears in the switcher automatically.
 
-## Technologies Used
+Each theme has three section backgrounds (hero / projects / contact) that
+cross-fade on scroll. Drop images into `public/images/backgrounds/` — see the
+README there for filenames.
 
-- HTML
-- CSS
-- JavaScript
-- jQuery
+## Develop
 
-## Projects
+```bash
+npm install
+npm run dev       # local dev server
+npm run build     # typecheck + production build to dist/
+npm run preview   # preview the production build
+npm run lint      # oxlint
+```
 
-### Formula 1 Dashboard
-- **Description**: Made with JavaScript, Tailwind CSS, Node.js, and Express. The F1 Dashboard is a single-page web application that leverages DOM manipulation and asynchronous JavaScript to display data from the Formula 1 API.
-- **GitHub**: [Formula 1 Dashboard](https://github.com/ewush956/F1-Dashboard)
-- **Live Site**: [Formula 1 Dashboard](https://ewush956.github.io/F1-Dashboard/)
+## Hosting
 
-### 3D Pathfinder
-- **Description**: Made with Python, Matplotlib, and Haskell. This project is a representation of the Traveling Salesman Problem (TSP) in 3D Cartesian space.
-- **GitHub**: [3D Pathfinder](https://github.com/ewush956/3D-Pathfinder)
+Deployed to GitHub Pages via GitHub Actions (`.github/workflows/deploy.yml`) on
+every push to `main`. The custom domain `wushke.ca` is preserved via
+`public/CNAME`.
 
-### Disk Scheduling Algorithm Visualizer
-- **Description**: Made with JavaScript and Tailwind CSS. This web application visualizes various disk scheduling algorithms.
-- **GitHub**: [Disk Scheduling Algorithm Visualizer](https://github.com/apuni866/Disk-Scheduling-Visualizer)
-- **Live Site**: [Disk Scheduling Algorithm Visualizer](https://apuni866.github.io/Disk-Scheduling-Visualizer/)
+## Tech
 
-### Pacmans Revenge
-- **Description**: Arcade style variant of the arcade game "Pacman" created for Computing Machinery II at Mount Royal University. This game is intended for the Steem emulator.
-- **GitHub**: [Pacmans Revenge](https://github.com/ewush956/PacmansRevenge)
-
-## Contact
-
-Feel free to reach out to me via [LinkedIn](https://www.linkedin.com/in/evan-wushke-226a7924b/) or [GitHub](https://github.com/ewush956).
-
-## License
-
-This project is licensed under the MIT License.
+React 19 · TypeScript · Vite · Motion · canvas-confetti
