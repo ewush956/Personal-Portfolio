@@ -4,7 +4,7 @@ import { flushSync } from 'react-dom';
 import { DEFAULT_THEME, THEMES, isThemeId } from './registry';
 import type { ThemeId } from './registry';
 import { ThemeContext } from './themeContext';
-import { ensureFontsLoaded, preloadThemeAssets } from './preloadTheme';
+import { ensureFontsLoaded, preloadThemeAssets, prefetchAllThemes } from './preloadTheme';
 import './viewTransition.css';
 
 const STORAGE_KEY = 'portfolio-theme';
@@ -43,8 +43,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.dataset.theme = themeId;
     window.localStorage.setItem(STORAGE_KEY, themeId);
-    ensureFontsLoaded(themeId);
+    void ensureFontsLoaded(themeId);
   }, [themeId]);
+
+  // Warm every theme's fonts + images once idle so switches are instant.
+  useEffect(() => {
+    prefetchAllThemes();
+  }, []);
 
   const setTheme = useCallback(async (id: ThemeId, origin?: { x: number; y: number }) => {
     if (busyRef.current || id === themeIdRef.current) return;
@@ -53,14 +58,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     busyRef.current = true;
     setIsTransitioning(true);
     try {
-      // Load the new theme's fonts + background images BEFORE anything visible
-      // changes, so the reveal shows a fully-painted theme with no pop-in.
+      // Fully load + decode the new theme's fonts and background images BEFORE
+      // revealing it, so the reveal shows a fully-painted theme with no FOUT flash.
       await preloadThemeAssets(id);
 
       const doc = document as DocumentWithVT;
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      // No View Transitions support or reduced motion → plain, instant swap.
+      // Plain instant swap only when View Transitions are unavailable or under
+      // reduced motion. Otherwise it's always the circular reveal, for a
+      // consistent, intentional feel.
       if (!doc.startViewTransition || reduce) {
         setThemeId(id);
         return;
@@ -68,12 +75,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
       // Seed the reveal's origin + radius as custom properties; the CSS keyframe
       // animation on ::view-transition-new(root) reads them (see viewTransition.css).
+      // Radius is padded 12% so an address-bar/viewport resize mid-reveal can't
+      // leave an uncovered edge flashing through.
       const x = origin?.x ?? window.innerWidth / 2;
       const y = origin?.y ?? window.innerHeight / 2;
       const root = document.documentElement;
       root.style.setProperty('--vt-x', `${x}px`);
       root.style.setProperty('--vt-y', `${y}px`);
-      root.style.setProperty('--vt-r', `${maxRadius(x, y)}px`);
+      root.style.setProperty('--vt-r', `${maxRadius(x, y) * 1.12}px`);
 
       // Freeze per-element CSS fades so the swap is instant and both snapshots are
       // clean — the circular reveal is then the only animation (see viewTransition.css).
@@ -82,14 +91,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       // The API snapshots the old page, runs our callback to swap the theme,
       // then reveals the new snapshot via the CSS-driven circular clip.
       const transition = doc.startViewTransition(() => {
+        // Set the attribute synchronously so the new snapshot is guaranteed fully
+        // themed regardless of React effect timing; flushSync syncs the React UI
+        // (active chip, splash) into the same snapshot.
+        root.dataset.theme = id;
         flushSync(() => setThemeId(id));
       });
 
-      // Once snapshots are captured the real DOM is already fully the new theme,
-      // so restoring transitions here can't cause a stray fade.
-      await transition.ready.catch(() => {});
-      root.classList.remove('vt-theme-swap');
-
+      // Keep transitions frozen for the whole reveal (transitions are restored in
+      // `finally`), so nothing repaints underneath the overlay mid-animation.
       // Hold `busy` until the reveal ends so a click can't start an overlapping swap.
       await transition.finished.catch(() => {});
     } finally {
