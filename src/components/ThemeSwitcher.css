@@ -4,8 +4,10 @@
   z-index: 40;
   padding-block: var(--space-3);
   background: var(--header-bg);
-  -webkit-backdrop-filter: blur(7px);
-  backdrop-filter: blur(7px);
+  /* No backdrop-filter: blurring this sticky bar forces Chromium to repaint the
+     layer every frame, and during a fast scroll up the compositor can't keep up
+     — the bar lags its top:0 layout position and visibly detaches from the top.
+     The --header-bg colors are opaque enough to read as a header on their own. */
   border-bottom: 1px solid var(--color-border);
   transition:
     background 0.6s var(--ease),

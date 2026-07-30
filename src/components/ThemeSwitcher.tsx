@@ -25,7 +25,7 @@ const CIRCLE_START = 120; // circles begin once the resize is underway
 type Phase = 'expanded' | 'condensing' | 'condensed' | 'expanding';
 
 export function ThemeSwitcher() {
-  const { themes, theme, themeId, setTheme } = useTheme();
+  const { themes, theme, themeId, setTheme, isTransitioning } = useTheme();
   const [phase, setPhase] = useState<Phase>('expanded');
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -284,7 +284,19 @@ export function ThemeSwitcher() {
                 aria-checked={active}
                 title={theme.tagline}
                 aria-label={theme.label}
-                onClick={() => setTheme(theme.id)}
+                disabled={isTransitioning}
+                onClick={(e) => {
+                  // Keyboard activation reports clientX/Y as 0 — seed the iris from
+                  // the button's center instead of the viewport corner.
+                  const origin =
+                    e.detail === 0
+                      ? (() => {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+                        })()
+                      : { x: e.clientX, y: e.clientY };
+                  setTheme(theme.id, origin);
+                }}
               >
                 <span
                   className="theme-chip__swatch"
