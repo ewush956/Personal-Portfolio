@@ -60,6 +60,12 @@ export class GraphRenderer {
   private adjacency: Adjacency;
   private hovered: GraphNode | null = null;
   private selected: GraphNode | null = null;
+  /**
+   * Chrome covering the canvas — the reading panel. Labels are kept inside what
+   * this leaves, so none is drawn off the edge or behind the panel.
+   */
+  private viewInset: { right: number; bottom: number } = { right: 0, bottom: 0 };
+
   /** Topic ids currently shown. null means "no filter applied". */
   private topicFilter: Set<string> | null = null;
   /** Whether the course ring is drawn. The index is never filtered out. */
@@ -235,6 +241,18 @@ export class GraphRenderer {
     this.fitK = k;
     this.tx = (this.width - (inset.right ?? 0)) / 2 - idx.x * k;
     this.ty = (this.height - (inset.bottom ?? 0)) / 2 - idx.y * k + this.height * SURVEY_DROP;
+    this.invalidate();
+  }
+
+  /**
+   * Tell the renderer what the chrome covers, so labels stay clear of it.
+   *
+   * Set to the same inset the camera is framed with, panel open or not: a label
+   * that re-flows the moment the panel appears is worse than one that always
+   * sat where the panel will be.
+   */
+  setViewInset(inset: { right?: number; bottom?: number }) {
+    this.viewInset = { right: inset.right ?? 0, bottom: inset.bottom ?? 0 };
     this.invalidate();
   }
 
@@ -661,6 +679,10 @@ export class GraphRenderer {
     const placed: { x0: number; y0: number; x1: number; y1: number }[] = [];
     /** Breathing room between neighbouring labels, in screen pixels. */
     const GAP = 5;
+    /** The part of the canvas the reader can actually see, and its margin. */
+    const visW = this.width - this.viewInset.right;
+    const visH = this.height - this.viewInset.bottom;
+    const EDGE = 6;
 
     /* Where a course label may go, searched in order: out along the ray from
        the index, and at each distance a little way around it.
@@ -744,13 +766,24 @@ export class GraphRenderer {
           const sin = Math.sin(swing);
           const ux = (dx * cos - dy * sin) / d;
           const uy = (dx * sin + dy * cos) / d;
-          const cx = radial ? nx + ux * (edge + extra) : nx;
-          const cy = radial ? ny + uy * (edge + extra) - size / 2 : ny + edge + 4;
-          if (cx < -240 || cx > this.width + 240 || cy < -24 || cy > this.height + 24) continue;
+          let cx = radial ? nx + ux * (edge + extra) : nx;
+          let cy = radial ? ny + uy * (edge + extra) - size / 2 : ny + edge + 4;
+
+          // Slide the label back inside the visible region rather than letting
+          // it hang off the edge or slip behind the panel. Long names on the
+          // outer courses overflow otherwise — "Introduction to Computer
+          // Science" ran 62px past the left edge at 1440x900. Sliding beats
+          // dropping: the leader line still ties it to its node, so a label
+          // that had to move is merely offset, not lost.
+          const halfW = w / 2 + padX;
+          if (halfW * 2 > visW - EDGE * 2 || size + padY * 2 > visH - EDGE * 2) continue;
+          cx = Math.min(Math.max(cx, EDGE + halfW), visW - EDGE - halfW);
+          cy = Math.min(Math.max(cy, EDGE + padY), visH - EDGE - size - padY);
+
           const b: Box = {
-            x0: cx - w / 2 - padX,
+            x0: cx - halfW,
             y0: cy - padY,
-            x1: cx + w / 2 + padX,
+            x1: cx + halfW,
             y1: cy + size + padY,
           };
           const moved = step > 0 || swing !== 0;

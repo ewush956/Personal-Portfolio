@@ -163,6 +163,7 @@ export default function GraphPage() {
 
     // The landing camera. Set here rather than left to the constructor's fit()
     // so it uses the same framing "Start here" does, panel space included.
+    renderer.setViewInset(panelInset(false));
     renderer.surveyFrame(panelInset(false));
 
     // Deliberately only resize and redraw: re-framing here would throw away a
@@ -216,6 +217,12 @@ export default function GraphPage() {
   useEffect(() => {
     rendererRef.current?.setSelected(selected);
   }, [selected]);
+
+  // Keep the label bounds in step with the camera's. Both use the panel inset
+  // whether or not a note is open, so nothing re-flows when the panel appears.
+  useEffect(() => {
+    rendererRef.current?.setViewInset(panelInset(fullscreen));
+  }, [fullscreen, data]);
 
   useEffect(() => {
     const selected = openNote;
