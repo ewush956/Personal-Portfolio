@@ -1,0 +1,1 @@
+{"title":"Processes","slug":"processes","path":"COMP 3RD YEAR/COMP 3659/Processes.md","tags":[],"body":"[[Process Priority]]\n[[PCB]]\n[[Process State]]\nEvery process lives in some form of [[Queue]]. Either a [[Wait Queue]] or a [[Ready Queue]].\n\n[[Inter-process Communication]]"}

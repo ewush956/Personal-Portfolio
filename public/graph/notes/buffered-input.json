@@ -1,0 +1,1 @@
+{"title":"Buffered Input","slug":"buffered-input","path":"COMP 1ST YEAR/COMP 1633/Problem Solving/Buffered Input.md","tags":[],"body":"```C++\r\nint number;\r\ncin >> number >> endl;\r\n```\r\n`number` has a specific **Storage Location** called a **Buffer**\r\nread from [[File]]"}

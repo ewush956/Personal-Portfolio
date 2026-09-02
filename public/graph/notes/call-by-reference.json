@@ -1,0 +1,1 @@
+{"title":"Call by reference","slug":"call-by-reference","path":"COMP 1ST YEAR/COMP 1633/Programming Abstractions/Memory/Call by reference.md","tags":[],"body":"When passing a value into a function using pass by refference,\r\nthe argument(s) of the function must be variables, not expressions."}

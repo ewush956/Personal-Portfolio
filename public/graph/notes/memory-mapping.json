@@ -1,0 +1,1 @@
+{"title":"Memory Mapping","slug":"memory-mapping","path":"COMP 2ND YEAR/COMP 2659/Memory Mapping.md","tags":[],"body":"A *Memory map* assigns an adress to the [[CPU]] *Address space*.\n\n**Pros and Cons of memory mapped I-O**\n*Pros*\n- Simpler CPU design\n- Simpler for programmer \n- Less load to CPU \n*Cons*\n- Some main memory address space is sacrificed."}

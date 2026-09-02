@@ -1,0 +1,1 @@
+{"title":"Header File","slug":"header-file","path":"COMP 1ST YEAR/COMP 1633/Programming Abstractions/Functions/Header File.md","tags":[],"body":"```c++\r\n#include <iostream>\r\nusing namespace std;\r\nint function_name(int x);\r\n```\r\n\r\nInclude <[[Library]]>\r\nDeclare [[Function]] \r\n`#include <>`"}

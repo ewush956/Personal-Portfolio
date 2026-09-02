@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# The Obsidian vault, symlinked in from ~/Documents/ComputerScienceVault.
+# No trailing slash: that form only matches directories, and a symlink isn't
+# one — it would have been committed, pointing at an absolute path that exists
+# on exactly one machine. Generated artifacts under public/graph/ are what ship.
+vault

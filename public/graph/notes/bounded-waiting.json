@@ -1,0 +1,1 @@
+{"title":"Bounded Waiting","slug":"bounded-waiting","path":"COMP 3RD YEAR/COMP 3659/Bounded Waiting.md","tags":[],"body":"- Process time in entry section has an upper bound \n  (A thread can't be vulnerable to [[Starvation]])\n- This is common to [[CPU Scheduling]]"}

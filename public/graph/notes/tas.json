@@ -1,0 +1,1 @@
+{"title":"TAS","slug":"tas","path":"COMP 3RD YEAR/COMP 3659/TAS.md","tags":[],"body":"***Test and set instruction***\n```C\nwhile(true){\n\twhile (tas(&lock)) //needs library support\n\t\t//lock is a shared global int initialized to 0\n\t\t;\n\t//critical section ... ;\n\tlock = 0;\n\t//remainder section ... ;\n}\n```\nthis is as example of a [[Spin Lock]]"}

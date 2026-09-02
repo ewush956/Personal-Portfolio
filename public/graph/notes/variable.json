@@ -1,0 +1,1 @@
+{"title":"Variable","slug":"variable","path":"COMP 1ST YEAR/COMP 1633/Programming Abstractions/Memory/Variable.md","tags":[],"body":"Stored in a [[Memory]] location\r\n\r\n[[Atomic type]] in C++ are explicit, not implicit\r\nChanging a variables data type is done through \r\n[[Type casting]]"}

@@ -1,0 +1,1 @@
+{"title":"Array Feild","slug":"array-feild","path":"COMP 1ST YEAR/COMP 1633/Array Feild.md","tags":[],"body":"```c++\r\nstruct Student{\r\n\tchar name[MAX_LENGTH];\r\n\tint id;\r\n}\r\nStudent student1;\r\nstudent1.name[0];\r\n// Accessing an Array inside a structure\r\n```\r\nArray in"}
