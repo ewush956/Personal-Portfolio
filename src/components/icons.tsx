@@ -22,6 +22,30 @@ export function HomeIcon() {
   );
 }
 
+export function ArrowLeftIcon() {
+  // A vector rather than the "←" character. That glyph sits on the text
+  // baseline, so beside a tall cap height — EB Garamond on Sleep Token
+  // especially — it reads visibly low. An SVG is centred by the flex box and
+  // renders identically whatever font the theme picks.
+  return (
+    <svg {...stroke}>
+      <path d="M19 12H5" />
+      <path d="M11 6 5 12l6 6" />
+    </svg>
+  );
+}
+
+export function EducationIcon() {
+  // A graduation cap — the mortarboard plus its tassel.
+  return (
+    <svg {...stroke}>
+      <path d="M12 4 2.5 8.5 12 13l9.5-4.5L12 4Z" />
+      <path d="M6 10.6V15c0 1.5 2.7 2.8 6 2.8s6-1.3 6-2.8v-4.4" />
+      <path d="M21.5 8.5v5" />
+    </svg>
+  );
+}
+
 export function ProjectsIcon() {
   // A little computer/monitor — projects are things built at the machine.
   return (

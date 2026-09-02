@@ -1,0 +1,668 @@
+/* Graph view — a full-viewport canvas with floating chrome over it. */
+
+.graph-page {
+  position: fixed;
+  inset: 0;
+  background: var(--graph-bg);
+  overflow: hidden;
+
+  /* Shared by the top controls and the legend below them: the legend derives
+     its width from these so its left edge lands on the search field's. */
+  --control-h: 38px;
+  --search-w: min(240px, 30vw);
+  --note-w: min(560px, 92vw);
+}
+
+.graph-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none; /* pointer events own pan and pinch, not the browser */
+}
+
+.graph-canvas:active {
+  cursor: grabbing;
+}
+
+/* --- chrome ------------------------------------------------------------- */
+
+.graph-chrome {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  pointer-events: none;
+}
+
+/* The title sits over the densest part of the graph, and nodes drifting behind
+   the glyphs made it hard to read. Fade the canvas out underneath the bar
+   rather than boxing the text in — the scrim extends past the controls so the
+   transition is invisible. */
+.graph-chrome--top {
+  top: 0;
+  padding-bottom: var(--space-7);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--graph-bg) 94%, transparent) 0%,
+    color-mix(in srgb, var(--graph-bg) 82%, transparent) 45%,
+    transparent 100%
+  );
+}
+
+.graph-chrome > * {
+  pointer-events: auto;
+}
+
+/* min-width:0 so the title is the thing that gives when the bar is tight.
+   Without it a flex item refuses to shrink past its min-content width, the bar
+   overflows, and the controls get pushed out of the region they're supposed to
+   sit in — which is what knocked the search field out of line with the legend
+   once the note panel claimed half the screen. */
+.graph-title {
+  text-align: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.graph-chrome__tools,
+.graph-back {
+  flex: none;
+}
+
+.graph-title h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-display);
+  text-transform: var(--heading-transform);
+  letter-spacing: var(--heading-tracking);
+  font-size: var(--text-xl);
+  color: var(--color-heading);
+  text-shadow: var(--heading-glow);
+}
+
+.graph-title p {
+  margin: 2px 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+/* Back, search and Reset sat at three different heights with three different
+   borders. One shared control shape instead, so the row reads as one group. */
+/* These float over the graph, so they get the same solid backdrop the legend
+   and menu panels use — not --btn-bg, which is `transparent` on Sleep Token and
+   near-transparent on Hacker Bro. On a page-coloured section that's fine; over
+   a field of nodes it left the labels with nothing behind them. */
+.graph-back,
+.graph-btn,
+.graph-search__input {
+  height: var(--control-h);
+  padding: 0 var(--space-4);
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: 1;
+  text-decoration: none;
+  color: var(--color-text);
+  background: var(--graph-panel-bg);
+  border: 1px solid var(--graph-panel-border);
+  border-radius: var(--btn-radius);
+  box-shadow: var(--card-shadow);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.graph-back,
+.graph-btn {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.graph-back:hover,
+.graph-btn:hover,
+.graph-search__input:focus-visible {
+  background: var(--btn-hover-bg);
+  color: var(--btn-fg);
+}
+
+/* --- readout ------------------------------------------------------------ */
+
+.graph-readout {
+  position: absolute;
+  left: var(--space-5);
+  bottom: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: min(360px, 60vw);
+  padding: var(--space-3) var(--space-4);
+  background: var(--graph-panel-bg);
+  border: 1px solid var(--graph-panel-border);
+  border-radius: var(--card-radius);
+  pointer-events: none;
+}
+
+.graph-readout strong {
+  color: var(--color-heading);
+  font-size: var(--text-lg);
+  line-height: 1.2;
+}
+
+.graph-readout__kind {
+  font-size: var(--text-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.graph-readout__kind--index,
+.graph-readout__kind--course {
+  color: var(--color-accent);
+}
+
+.graph-readout__meta {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+/* --- legend + topic filter --------------------------------------------- */
+
+/* Left edge lined up with the search field above it: same right margin, and a
+   width equal to everything between the search field's left edge and the screen
+   edge — the field, the gap, and the menu button. */
+.graph-legend {
+  position: absolute;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  width: calc(var(--search-w) + var(--space-3) + var(--control-h));
+  max-height: min(56vh, 520px);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3) var(--space-4);
+  background: var(--graph-panel-bg);
+  border: 1px solid var(--graph-panel-border);
+  border-radius: var(--card-radius);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.graph-legend__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--graph-panel-border);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.graph-legend__all {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.graph-legend__all:hover {
+  text-decoration: underline;
+}
+
+.graph-legend__list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+/* The swatch *is* the checkbox — a filled dot when on, a hollow ring when off.
+   A native checkbox next to a coloured dot was two indicators for one piece of
+   state, and it never matched the rest of the chrome on any theme. */
+.graph-legend__item {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 7px;
+  border-radius: calc(var(--card-radius) / 2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+
+.graph-legend__item:hover {
+  background: color-mix(in srgb, var(--color-muted) 14%, transparent);
+}
+
+/* Visually hidden, but still the thing that carries the state for assistive
+   tech and for keyboard toggling. */
+.graph-legend__item input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.graph-legend__item i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px currentColor;
+  transition: box-shadow var(--dur) var(--ease);
+}
+
+.graph-legend__item:has(input:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.graph-legend__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Off: the dot hollows out and the row recedes, but the colour stays so you
+   can still tell which topic you turned off. */
+.graph-legend__item.is-off {
+  opacity: 0.55;
+}
+
+.graph-legend__item.is-off i {
+  background: transparent !important;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
+.graph-legend__item.is-off .graph-legend__label {
+  color: var(--color-muted);
+}
+
+.graph-legend__count {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+/* --- accessible mirror -------------------------------------------------- */
+
+.graph-a11y {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.graph-page--error {
+  display: grid;
+  place-content: center;
+  gap: var(--space-3);
+  text-align: center;
+  color: var(--color-text);
+}
+
+@media (max-width: 720px) {
+  /* The legend is also the filter, so it stays — losing it would lose a
+     feature. The readout goes instead: there is no hover on touch, and the
+     note panel already names whatever you tapped. */
+  .graph-readout {
+    display: none;
+  }
+
+  .graph-page {
+    --control-h: 34px;
+  }
+
+  .graph-chrome--top {
+    gap: var(--space-2);
+    padding: var(--space-3);
+    /* Nodes sit closer to the controls on a narrow screen, so the fade has to
+       reach further past them before it lets go. */
+    padding-bottom: var(--space-9);
+  }
+
+  /* "Back" and "view" are the parts a small screen can do without; the arrow
+     and "Reset" still say what the control does. */
+  .graph-btn__long {
+    display: none;
+  }
+
+  .graph-back,
+  .graph-btn {
+    padding: 0 var(--space-3);
+  }
+
+  .graph-search {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .graph-search__input {
+    width: 100%;
+  }
+
+  .graph-search__results {
+    width: min(340px, calc(100vw - var(--space-5)));
+  }
+
+  /* The filter was taller than the space it had and clipped its last rows.
+     Collapsed to its header by default so the graph is usable; the header is
+     the toggle. */
+  .graph-legend {
+    right: var(--space-3);
+    bottom: var(--space-3);
+    left: var(--space-3);
+    width: auto;
+    max-height: min(46vh, 340px);
+    font-size: 12px;
+  }
+
+  .graph-legend__list {
+    columns: 2;
+    column-gap: var(--space-4);
+  }
+
+  .graph-legend[data-collapsed='true'] .graph-legend__list {
+    display: none;
+  }
+
+  .graph-title p {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  /* Not enough room for Back, a title and Reset on one line — the title is the
+     part a visitor can do without, since they just came from a link that said it. */
+  .graph-title {
+    display: none;
+  }
+}
+
+/* --- reading state ------------------------------------------------------
+   With the note panel open the right-hand chrome would sit underneath it. */
+
+.graph-page--reading .graph-legend {
+  display: none;
+}
+
+.graph-page--reading .graph-chrome--top {
+  right: var(--note-w);
+}
+
+/* Below this there isn't room for the title as well as the controls once the
+   note is open, and the note already says what you're looking at. */
+@media (max-width: 1300px) {
+  .graph-page--reading .graph-title {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .graph-page--reading .graph-chrome--top {
+    right: 0;
+  }
+
+  .graph-page--reading .graph-readout {
+    display: none;
+  }
+}
+
+/* --- search ------------------------------------------------------------- */
+
+.graph-chrome__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.graph-search {
+  position: relative;
+  display: flex;
+}
+
+.graph-search__input {
+  width: var(--search-w);
+  color: var(--color-text);
+  cursor: text;
+}
+
+.graph-search__input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.graph-search__input::placeholder {
+  color: var(--color-muted);
+}
+
+.graph-search__results {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(340px, 78vw);
+  max-height: 46vh;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--graph-panel-bg);
+  border: 1px solid var(--graph-panel-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.graph-search__hit {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  color: var(--color-text);
+  background: none;
+  border: none;
+  border-radius: calc(var(--card-radius) / 2);
+  cursor: pointer;
+}
+
+.graph-search__hit.is-active {
+  background: var(--btn-hover-bg);
+  color: var(--btn-fg);
+}
+
+.graph-search__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-search__meta {
+  flex: none;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.graph-search__hit.is-active .graph-search__meta {
+  color: inherit;
+  opacity: 0.7;
+}
+
+.graph-search__empty {
+  padding: 8px;
+  color: var(--color-muted);
+}
+
+@media (max-width: 720px) {
+  /* Search matters more than the reset button on a phone. */
+  .graph-search__input {
+    width: 38vw;
+  }
+}
+
+/* Courses are structure, not a topic — separated so the distinction reads. */
+.graph-legend__structural {
+  padding-bottom: 5px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid var(--graph-panel-border);
+}
+
+.graph-legend__structural .graph-legend__label {
+  font-weight: 600;
+}
+
+.graph-legend__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* --- view menu ----------------------------------------------------------- */
+
+/* Flex, not block: as a block the inline-level button inside inherited a
+   line-box descender, making the wrapper taller than the button and leaving the
+   trigger sitting ~4px below Back and the search field. */
+.graph-menu {
+  position: relative;
+  display: flex;
+}
+
+.graph-menu__trigger {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: var(--control-h);
+  padding: 0;
+}
+
+.graph-menu__trigger span {
+  display: block;
+  width: 16px;
+  height: 1.5px;
+  margin: 0 auto;
+  background: currentColor;
+  border-radius: 2px;
+}
+
+.graph-menu__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 2;
+  width: max-content;
+  min-width: 210px;
+  padding: 5px;
+  background: var(--graph-panel-bg);
+  border: 1px solid var(--graph-panel-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.graph-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  color: var(--color-text);
+  background: none;
+  border: none;
+  border-radius: calc(var(--card-radius) / 2);
+  cursor: pointer;
+}
+
+.graph-menu__item:hover {
+  background: var(--btn-hover-bg);
+  color: var(--btn-fg);
+}
+
+.graph-menu__group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--graph-panel-border);
+}
+
+.graph-menu__label {
+  display: block;
+  padding: 4px 10px;
+  font-size: var(--text-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.graph-menu__item--radio span {
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-menu__item--radio em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.graph-menu__item--radio.is-active {
+  color: var(--color-accent);
+}
+
+/* A tick rather than a dot: the active row is already coloured, and this reads
+   at a glance without a second column of empty circles. */
+.graph-menu__item--radio.is-active::after {
+  content: '✓';
+  font-size: var(--text-sm);
+}
+
+/* --- full screen notes ---------------------------------------------------
+   The graph is entirely covered, so its chrome is both invisible and
+   unreachable. Hide it; the note panel carries the way back out. */
+
+@media (min-width: 721px) {
+  .graph-page--fullscreen .graph-chrome--top,
+  .graph-page--fullscreen .graph-legend,
+  .graph-page--fullscreen .graph-readout {
+    display: none;
+  }
+}
+
+/* The back arrow is an icon, so the button spaces it from the label rather
+   than relying on a non-breaking space. With the label hidden on narrow
+   screens the gap collapses on its own. */
+.graph-back {
+  gap: 6px;
+}
+
+.graph-back svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}

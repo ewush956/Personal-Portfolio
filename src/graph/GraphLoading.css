@@ -1,0 +1,86 @@
+/* Loading state for the graph route — a small graph assembling itself, rather
+   than a spinner that could belong to any site. */
+
+.graph-loading {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-5);
+  background: var(--graph-bg);
+  color: var(--color-muted);
+  font-family: var(--font-body);
+}
+
+.graph-loading__orbit {
+  position: relative;
+  width: 96px;
+  height: 96px;
+}
+
+.graph-loading__core,
+.graph-loading__node {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.graph-loading__core {
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  background: var(--graph-node-index, var(--color-heading));
+}
+
+.graph-loading__node {
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: var(--color-accent);
+  transform-origin: 5px 5px;
+  animation: graph-orbit 2.4s linear infinite;
+}
+
+.graph-loading__node--1 {
+  animation-delay: 0s;
+}
+
+.graph-loading__node--2 {
+  background: var(--color-accent-2);
+  animation-delay: -0.8s;
+}
+
+.graph-loading__node--3 {
+  background: var(--graph-node-course, var(--color-muted));
+  animation-delay: -1.6s;
+}
+
+@keyframes graph-orbit {
+  from {
+    transform: rotate(0deg) translateX(38px) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(38px) rotate(-360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-loading__node {
+    animation: none;
+  }
+
+  /* Static arrangement instead of a frozen stack on top of the core. */
+  .graph-loading__node--1 {
+    transform: translateX(38px);
+  }
+  .graph-loading__node--2 {
+    transform: rotate(120deg) translateX(38px);
+  }
+  .graph-loading__node--3 {
+    transform: rotate(240deg) translateX(38px);
+  }
+}

@@ -1,0 +1,487 @@
+/* Reading panel — sits over the graph, Obsidian-style. */
+
+.note-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(560px, 92vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--graph-panel-bg);
+  border-left: 1px solid var(--graph-panel-border);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  animation: note-slide 0.28s var(--ease);
+}
+
+@keyframes note-slide {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-panel {
+    animation: none;
+  }
+}
+
+.note-panel__handle {
+  display: none;
+}
+
+.note-panel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-2);
+  border-bottom: 1px solid var(--graph-panel-border);
+}
+
+/* The title is what gives when the header is tight. Without min-width:0 a flex
+   item won't shrink past its min-content width, so on a 320px screen the title
+   held its ground and shoved the buttons off the edge of the panel. */
+.note-panel__heading {
+  min-width: 0;
+}
+
+.note-panel__head h2 {
+  overflow-wrap: anywhere;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-display);
+  font-size: var(--text-xl);
+  line-height: 1.15;
+  color: var(--color-heading);
+}
+
+.note-panel__path {
+  margin: 4px 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  word-break: break-word;
+}
+
+.note-panel__actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  /* Never the item that shrinks — these are the controls. */
+  flex-shrink: 0;
+}
+
+.note-panel__btn {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font: inherit;
+  line-height: 1;
+  color: var(--btn-fg);
+  background: var(--btn-bg);
+  border: var(--btn-border);
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+.note-panel__btn:hover {
+  background: var(--btn-hover-bg);
+}
+
+.note-panel__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: var(--space-3) var(--space-5) 0;
+  list-style: none;
+}
+
+.note-panel__tags li {
+  padding: 2px 8px;
+  font-size: var(--text-sm);
+  color: var(--tag-fg);
+  background: var(--tag-bg);
+  border-radius: 999px;
+}
+
+.note-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5) var(--space-7);
+  line-height: 1.65;
+}
+
+.note-panel__error {
+  color: var(--color-muted);
+}
+
+/* --- markdown ----------------------------------------------------------- */
+
+.note-panel__body h1,
+.note-panel__body h2,
+.note-panel__body h3,
+.note-panel__body h4 {
+  font-family: var(--font-display);
+  color: var(--color-heading);
+  line-height: 1.2;
+  margin: var(--space-5) 0 var(--space-2);
+}
+
+.note-panel__body h1 { font-size: var(--text-xl); }
+.note-panel__body h2 { font-size: var(--text-lg); }
+.note-panel__body h3,
+.note-panel__body h4 { font-size: var(--text-base); }
+
+.note-panel__body p,
+.note-panel__body ul,
+.note-panel__body ol {
+  margin: 0 0 var(--space-3);
+}
+
+/* base.css strips list markers site-wide, which is right for nav and card
+   grids and wrong for note prose — an index of courses reads as a floating
+   block without them. */
+.note-panel__body ul {
+  padding-left: 1.3em;
+  list-style: disc;
+}
+
+.note-panel__body ol {
+  padding-left: 1.4em;
+  list-style: decimal;
+}
+
+.note-panel__body li {
+  margin-bottom: 4px;
+}
+
+.note-panel__body li::marker {
+  color: var(--color-muted);
+}
+
+/* base.css sets `text-decoration: none` on every anchor, which is right for
+   nav and buttons and wrong in prose — inside a wall of text, colour alone is
+   a weak signal that something is clickable. Underline them explicitly. */
+.note-panel__body a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
+  text-underline-offset: 3px;
+}
+
+.note-panel__body a:hover,
+.note-panel__body a:focus-visible {
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 2px;
+}
+
+/* Unresolved wikilinks stay visible but clearly inert, as in Obsidian. */
+.wikilink--missing {
+  color: var(--color-muted);
+  font-style: normal;
+  border-bottom: 1px dashed currentColor;
+}
+
+.note-panel__body blockquote {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.note-panel__body img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Tables and code both overflow horizontally rather than forcing the panel
+   to scroll sideways. */
+.note-panel__body table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.note-panel__body th,
+.note-panel__body td {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.note-panel__body th {
+  color: var(--color-heading);
+  background: color-mix(in srgb, var(--color-surface-2) 60%, transparent);
+}
+
+.note-panel__body :not(pre) > code {
+  padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  background: var(--tag-bg);
+  border-radius: 4px;
+}
+
+.note-panel__body pre {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  overflow-x: auto;
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+}
+
+.note-panel__body pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+/* Math: KaTeX ships its own layout CSS; only color and overflow are ours.
+   Display equations get their own scroll rather than widening the panel. */
+.note-panel__body .katex {
+  color: var(--color-text);
+}
+
+.note-panel__body .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+/* --- syntax highlighting ------------------------------------------------
+   Driven by theme tokens rather than a bundled highlight.js stylesheet, so
+   code re-skins with the rest of the site. */
+
+.note-panel__body .hljs-comment,
+.note-panel__body .hljs-quote {
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+.note-panel__body .hljs-keyword,
+.note-panel__body .hljs-selector-tag,
+.note-panel__body .hljs-literal,
+.note-panel__body .hljs-built_in {
+  color: var(--color-accent);
+}
+
+.note-panel__body .hljs-string,
+.note-panel__body .hljs-attr,
+.note-panel__body .hljs-regexp {
+  color: var(--color-accent-2);
+}
+
+.note-panel__body .hljs-title,
+.note-panel__body .hljs-name,
+.note-panel__body .hljs-section {
+  color: var(--color-heading);
+}
+
+.note-panel__body .hljs-number,
+.note-panel__body .hljs-symbol,
+.note-panel__body .hljs-meta {
+  color: var(--graph-topic-3, var(--color-text));
+}
+
+.note-panel__body .hljs-type,
+.note-panel__body .hljs-class .hljs-title {
+  color: var(--graph-topic-5, var(--color-text));
+}
+
+@media (max-width: 720px) {
+  /* A bottom sheet on a phone: a 560px rail would cover the graph anyway.
+     62vh rather than 72 so there's a usable strip of graph above it even when
+     expanded. */
+  .note-panel {
+    top: auto;
+    left: 0;
+    width: auto;
+    height: 62vh;
+    border-left: none;
+    border-top: 1px solid var(--graph-panel-border);
+    border-radius: var(--card-radius) var(--card-radius) 0 0;
+    transition: height 0.24s var(--ease);
+  }
+
+  /* Collapsed to its header: the note stays open and keeps your place, the
+     graph gets the screen back. */
+  .note-panel--collapsed {
+    height: auto;
+  }
+
+  /* While a finger is on the handle the height is set inline, frame by frame —
+     an animation here would fight the drag and feel like lag. */
+  .note-panel--dragging {
+    transition: none;
+  }
+
+  /* Mid-drag the body must stay mounted, or the sheet has nothing to reveal as
+     it grows; it's clipped instead. */
+  .note-panel--dragging .note-panel__body {
+    display: block;
+    overflow: hidden;
+  }
+
+  .note-panel--collapsed .note-panel__tags,
+  .note-panel--collapsed .note-panel__body {
+    display: none;
+  }
+
+  .note-panel--collapsed /* The title is what gives when the header is tight. Without min-width:0 a flex
+   item won't shrink past its min-content width, so on a 320px screen the title
+   held its ground and shoved the buttons off the edge of the panel. */
+.note-panel__heading {
+  min-width: 0;
+}
+
+.note-panel__head h2 {
+  overflow-wrap: anywhere;
+    font-size: var(--text-lg);
+  }
+
+  .note-panel--collapsed .note-panel__path {
+    display: none;
+  }
+
+  .note-panel__handle {
+    display: block;
+    width: 100%;
+    padding: 10px 0 4px;
+    background: none;
+    border: none;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .note-panel__handle span {
+    display: block;
+    width: 40px;
+    height: 4px;
+    margin: 0 auto;
+    border-radius: 999px;
+    background: var(--color-muted);
+    opacity: 0.5;
+  }
+
+  .note-panel__handle:active {
+    cursor: grabbing;
+  }
+
+  .note-panel__head {
+    padding-top: var(--space-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-panel {
+    transition: none;
+  }
+}
+
+/* --- full screen ---------------------------------------------------------
+   For reading rather than navigating: the graph is covered completely, which
+   is the only way a note gets usable width in landscape.
+
+   Deliberately not offered on a narrow screen — the sheet already gives the
+   note the whole width, and the button was crowding the close control. The
+   rules are scoped to match, so a fullscreen state carried over from a wider
+   layout can't strand a phone with the chrome hidden and no way to exit. */
+@media (max-width: 720px) {
+  .note-panel__btn--fullscreen {
+    display: none;
+  }
+}
+
+@media (min-width: 721px) {
+.note-panel--fullscreen {
+  inset: 0;
+  width: auto;
+  height: auto;
+  max-height: none;
+  border: none;
+  border-radius: 0;
+  /* Opaque, not the panel's usual 95%. At inset:0 the translucency let the
+     graph and the chrome behind it show through the text, which is the exact
+     opposite of what "full screen" is for. */
+  background: var(--color-bg);
+}
+
+.note-panel--fullscreen .note-panel__handle {
+  display: none;
+}
+
+.note-panel--fullscreen .note-panel__body {
+  display: block;
+}
+
+/* Tags are a flex row — forcing `block` alongside the body turned each one
+   into a full-width bar. */
+.note-panel--fullscreen .note-panel__tags {
+  display: flex;
+}
+
+/* A comfortable measure instead of letting lines run the full width of a
+   landscape screen. */
+.note-panel--fullscreen .note-panel__head,
+.note-panel--fullscreen .note-panel__tags,
+.note-panel--fullscreen .note-panel__body {
+  max-width: 78ch;
+  margin-inline: auto;
+  width: 100%;
+}
+}
+
+/* --- Obsidian callouts ---------------------------------------------------
+   Rendered from `> [!note] Title` blockquotes by graph/remarkCallout.ts.
+   A tinted panel with a coloured rule and a coloured title, rather than an
+   icon set — it stays legible across five very different palettes and doesn't
+   drag emoji into an otherwise typographic page. */
+
+.callout {
+  --callout-color: var(--callout-note);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--callout-color);
+  border-radius: 0 var(--card-radius) var(--card-radius) 0;
+  background: color-mix(in srgb, var(--callout-color) 9%, transparent);
+}
+
+.callout--tip { --callout-color: var(--callout-tip); }
+.callout--warn { --callout-color: var(--callout-warn); }
+.callout--danger { --callout-color: var(--callout-danger); }
+
+.callout__title {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-base);
+  letter-spacing: 0.01em;
+  color: var(--callout-color);
+}
+
+/* The body inherits note prose, minus the blockquote treatment it would
+   otherwise have kept. */
+.callout > p:last-child {
+  margin-bottom: 0;
+}
+
+.callout code {
+  background: color-mix(in srgb, var(--callout-color) 14%, transparent);
+}
+
+.note-panel__btn svg {
+  width: 15px;
+  height: 15px;
+}
