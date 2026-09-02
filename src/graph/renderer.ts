@@ -158,7 +158,7 @@ export class GraphRenderer {
   // ------------------------------------------------------------------ camera
 
   /** Frame the graph, ignoring the outermost 0.5% so orphans can't shrink it. */
-  fit(padding = 60) {
+  fit(padding = 60, inset: { right?: number; bottom?: number } = {}) {
     const xs = this.data.nodes.map((n) => n.x).sort((a, b) => a - b);
     const ys = this.data.nodes.map((n) => n.y).sort((a, b) => a - b);
     const q = (arr: number[], p: number) => arr[Math.floor((arr.length - 1) * p)];
@@ -167,13 +167,19 @@ export class GraphRenderer {
     const minY = q(ys, 0.005);
     const maxY = q(ys, 0.995);
 
+    // Frame into what the chrome leaves, not the whole canvas. On a phone the
+    // reading sheet owns the bottom ~62%, so without this the graph is centred
+    // behind it and only its top edge is ever visible.
+    const w = this.width - (inset.right ?? 0);
+    const h = this.height - (inset.bottom ?? 0);
+
     this.k = Math.min(
-      (this.width - padding * 2) / Math.max(maxX - minX, 1),
-      (this.height - padding * 2) / Math.max(maxY - minY, 1),
+      (w - padding * 2) / Math.max(maxX - minX, 1),
+      (h - padding * 2) / Math.max(maxY - minY, 1),
     );
     this.fitK = this.k;
-    this.tx = this.width / 2 - ((minX + maxX) / 2) * this.k;
-    this.ty = this.height / 2 - ((minY + maxY) / 2) * this.k;
+    this.tx = w / 2 - ((minX + maxX) / 2) * this.k;
+    this.ty = h / 2 - ((minY + maxY) / 2) * this.k;
     this.invalidate();
   }
 
@@ -219,7 +225,7 @@ export class GraphRenderer {
     // over it. Landing and "Start here" still share it, so the camera is just
     // as still there as on the desktop.
     if (this.width < NARROW) {
-      this.fit();
+      this.fit(24, { bottom: inset.bottom ?? 0 });
       return;
     }
 
@@ -680,9 +686,13 @@ export class GraphRenderer {
       // fixed here rather than by the caller, so it doesn't shrink the moment
       // you hover it and get labelled by a different branch.
       const isIndex = n.kind === 'index';
-      const text = isIndex ? 'Start here' : n.title;
+      // "Start here" is an invitation to explore, which is the desktop's job.
+      // A phone navigates through the pages, so there the node is just labelled
+      // for what it is — and at a size that doesn't span the screen.
+      const phone = this.width < NARROW;
+      const text = isIndex ? (phone ? 'Index' : 'Start here') : n.title;
       if (isIndex) {
-        size = 21;
+        size = phone ? 15 : 21;
         bold = true;
       }
 
@@ -814,6 +824,18 @@ export class GraphRenderer {
       return;
     }
 
+    // On a phone, the selected node and nothing else.
+    //
+    // There is no room for more: a third of the width, and the reading sheet
+    // over most of the height. Even the index's own label goes — navigation
+    // there runs through the pages rather than the canvas, so the graph is an
+    // overview to orient by, not a menu to aim at.
+    if (this.width < NARROW) {
+      if (this.selected && visible(this.selected)) label(this.selected, 14, true);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      return;
+    }
+
     // 1. The entry point. At the starting view this is the only text on screen.
     if (visible(idx)) label(idx, 21, true, true);
 
@@ -828,19 +850,11 @@ export class GraphRenderer {
     //    and immediately whenever they're part of what you've selected or
     //    searched — which includes opening "Start here" itself, since every
     //    course is a neighbour of the index.
-    // Naming all thirty-two at once is a desktop affordance. A phone has
-    // roughly a third of the width and the sheet over most of the height, so
-    // the same pass there is a wall of overlapping text on top of the graph
-    // it is meant to describe. Narrow screens keep the progressive behaviour:
-    // a course is named when you search it, zoom to it, or open it — never
-    // just because the index is selected.
-    const narrow = this.width < NARROW;
     const zoomedForCourses = this.k > this.fitK * LABEL_ZOOM_COURSE;
     for (const n of this.byDegree) {
       if (n.kind !== 'course' || !visible(n)) continue;
       const requested =
-        (this.searchMatches?.has(n.id) ?? false) ||
-        (!narrow && hasFocus && this.highlight.has(n.id));
+        (this.searchMatches?.has(n.id) ?? false) || (hasFocus && this.highlight.has(n.id));
       if (zoomedForCourses || requested) label(n, 14);
     }
 

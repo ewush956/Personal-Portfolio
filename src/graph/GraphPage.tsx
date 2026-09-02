@@ -16,6 +16,10 @@ import './GraphPage.css';
 // graph itself, and nobody needs it until they open a note.
 const NotePanel = lazy(() => import('./NotePanel'));
 
+/** Below this viewport width the page is treated as a phone. Matches NARROW in
+    the renderer, which decides what gets labelled. */
+const NARROW = 720;
+
 /**
  * The chrome covering the canvas when a note is open.
  *
@@ -24,7 +28,7 @@ const NotePanel = lazy(() => import('./NotePanel'));
  * camera exactly where it already was.
  */
 function panelInset(fullscreen: boolean) {
-  const wide = window.innerWidth > 720;
+  const wide = window.innerWidth > NARROW;
   return {
     right: fullscreen ? 0 : wide ? Math.min(560, window.innerWidth * 0.92) : 0,
     bottom: fullscreen ? 0 : wide ? 0 : window.innerHeight * 0.62,
@@ -74,6 +78,23 @@ export default function GraphPage() {
     if (!data || lastFocusId === null) return null;
     return data.nodes[lastFocusId] ?? null;
   }, [openNote, data, lastFocusId]);
+
+  // On a phone the index opens on arrival.
+  //
+  // The graph is an overview there, not the way you navigate — reading happens
+  // in the sheet, and the sheet starting empty made the whole route look like a
+  // decorative blob you had to guess your way into. Desktop still lands on the
+  // graph itself, where "Start here" is legible and clickable.
+  //
+  // Once only, and via replace, so it doesn't sit in the history and closing
+  // the sheet doesn't immediately reopen it.
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (!data || slug || autoOpened.current) return;
+    if (window.innerWidth > NARROW) return;
+    autoOpened.current = true;
+    navigate(`/graph/${data.nodes[data.indexId].slug}`, { replace: true });
+  }, [data, slug, navigate]);
 
   const [enabledTopics, setEnabledTopics] = useState<Set<string>>(new Set());
   const [showCourses, setShowCourses] = useState(true);
