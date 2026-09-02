@@ -24,10 +24,6 @@ export type LabelMode = 'auto' | 'courses' | 'none';
 export interface RendererCallbacks {
   onHover(node: GraphNode | null): void;
   onSelect(node: GraphNode): void;
-  /** Drag lifecycle, forwarded to the simulation worker. Coordinates are world-space. */
-  onDragStart?(node: GraphNode): void;
-  onDrag?(node: GraphNode, x: number, y: number): void;
-  onDragEnd?(node: GraphNode): void;
 }
 
 /* Label thresholds, expressed as multiples of the fitted zoom rather than as
@@ -37,6 +33,10 @@ export interface RendererCallbacks {
    you lean in or open "Start here", notes once you're properly close. */
 const LABEL_ZOOM_COURSE = 1.6;
 const LABEL_ZOOM_NOTE = 4.5;
+/** Below this canvas width the layout is treated as a phone. Matches the
+    breakpoint GraphPage uses for the note sheet. */
+const NARROW = 720;
+
 /** How far the survey view sits below centre, as a share of viewport height.
     Bounded by the lowest course label, not by the nodes: at 0.065 the bottom
     row runs within ~20px of the edge on a 1280x800, which reads as clipped. */
@@ -80,7 +80,6 @@ export class GraphRenderer {
   // Pointer state
   private pointers = new Map<number, { x: number; y: number }>();
   private panning = false;
-  private dragging: GraphNode | null = null;
   private moved = 0;
   private lastPinch = 0;
 
@@ -145,16 +144,6 @@ export class GraphRenderer {
     this.height = rect.height;
     this.canvas.width = Math.round(rect.width * this.dpr);
     this.canvas.height = Math.round(rect.height * this.dpr);
-    this.invalidate();
-  }
-
-  /** Apply a frame of simulated positions. */
-  updatePositions(positions: Float32Array) {
-    const nodes = this.data.nodes;
-    for (let i = 0; i < nodes.length; i++) {
-      nodes[i].x = positions[i * 2];
-      nodes[i].y = positions[i * 2 + 1];
-    }
     this.invalidate();
   }
 
@@ -223,6 +212,17 @@ export class GraphRenderer {
    * thing on screen.
    */
   surveyFrame(inset: { right?: number; bottom?: number } = {}) {
+    // On a phone the note sheet takes ~62% of the screen, so fitting the
+    // courses into what's left would frame the whole degree into a 100px
+    // strip — past MIN_K and unreadable. A narrow screen gets the plain fit
+    // instead: the whole graph in the whole viewport, with the sheet sliding
+    // over it. Landing and "Start here" still share it, so the camera is just
+    // as still there as on the desktop.
+    if (this.width < NARROW) {
+      this.fit();
+      return;
+    }
+
     const k = this.courseFitZoom(inset);
     const idx = this.data.nodes[this.data.indexId];
     this.k = k;
@@ -296,14 +296,12 @@ export class GraphRenderer {
     this.pointers.set(e.pointerId, p);
     this.moved = 0;
 
-    // Pressing on a node drags it; pressing empty space pans the view.
-    const hit = this.pointers.size === 1 ? this.pick(p.x, p.y) : null;
-    if (hit) {
-      this.dragging = hit;
-      this.cb.onDragStart?.(hit);
-    } else {
-      this.panning = true;
-    }
+    // Any press pans, including one that lands on a node. Nodes used to be
+    // draggable, which on a touch screen meant a swipe that happened to start
+    // on a node moved that node instead of the view — the graph is dense enough
+    // that most of it is nodes, so panning was close to unusable on a phone.
+    // A press that barely travels is still a click, resolved on pointerup.
+    this.panning = true;
   };
 
   private onPointerMove = (e: PointerEvent) => {
@@ -319,14 +317,10 @@ export class GraphRenderer {
         this.zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, dist / this.lastPinch);
       }
       this.lastPinch = dist;
-      return;
-    }
-
-    if (this.dragging && prev) {
-      this.moved += Math.abs(p.x - prev.x) + Math.abs(p.y - prev.y);
-      this.pointers.set(e.pointerId, p);
-      const w = this.toWorld(p.x, p.y);
-      this.cb.onDrag?.(this.dragging, w.x, w.y);
+      // A pinch counts as travel. Without this, lifting the first finger after
+      // zooming looks like a stationary tap and opens whatever note happens to
+      // be under it.
+      this.moved += 10;
       return;
     }
 
@@ -347,12 +341,8 @@ export class GraphRenderer {
   private onPointerUp = (e: PointerEvent) => {
     const p = this.local(e);
 
-    if (this.dragging) {
-      // A press on a node that barely travelled is a click, not a drag.
-      if (this.moved < 5) this.cb.onSelect(this.dragging);
-      this.cb.onDragEnd?.(this.dragging);
-      this.dragging = null;
-    } else if (this.panning && this.moved < 5) {
+    // A press that barely travelled is a click, not a pan.
+    if (this.panning && this.moved < 5) {
       const hit = this.pick(p.x, p.y);
       if (hit) this.cb.onSelect(hit);
     }
@@ -838,11 +828,19 @@ export class GraphRenderer {
     //    and immediately whenever they're part of what you've selected or
     //    searched — which includes opening "Start here" itself, since every
     //    course is a neighbour of the index.
+    // Naming all thirty-two at once is a desktop affordance. A phone has
+    // roughly a third of the width and the sheet over most of the height, so
+    // the same pass there is a wall of overlapping text on top of the graph
+    // it is meant to describe. Narrow screens keep the progressive behaviour:
+    // a course is named when you search it, zoom to it, or open it — never
+    // just because the index is selected.
+    const narrow = this.width < NARROW;
     const zoomedForCourses = this.k > this.fitK * LABEL_ZOOM_COURSE;
     for (const n of this.byDegree) {
       if (n.kind !== 'course' || !visible(n)) continue;
       const requested =
-        (this.searchMatches?.has(n.id) ?? false) || (hasFocus && this.highlight.has(n.id));
+        (this.searchMatches?.has(n.id) ?? false) ||
+        (!narrow && hasFocus && this.highlight.has(n.id));
       if (zoomedForCourses || requested) label(n, 14);
     }
 

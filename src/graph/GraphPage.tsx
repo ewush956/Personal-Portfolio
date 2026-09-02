@@ -41,8 +41,8 @@ export default function GraphPage() {
   const navigate = useNavigate();
 
   // Held in a ref so the renderer effect below can call it without listing it
-  // as a dependency: rebuilding the renderer and the worker on every note
-  // navigation would defeat the point of both.
+  // as a dependency: rebuilding the renderer on every note navigation would
+  // throw away the reader's camera and re-attach every listener.
   const navRef = useRef(navigate);
   navRef.current = navigate;
 
@@ -126,49 +126,19 @@ export default function GraphPage() {
     const canvas = canvasRef.current;
     if (!data || !canvas) return;
 
-    // Live physics, seeded from the shipped layout. Skipped entirely under
-    // reduced-motion, where the static layout is the whole experience.
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let worker: Worker | null = null;
-
+    // No simulation. The layout is solved at build time and the courses are
+    // pinned onto their spiral there, so the shipped coordinates are the final
+    // ones — running d3-force again at load could only reproduce them, at the
+    // cost of a worker, a physics dependency in the bundle and a hot CPU on a
+    // phone. Nodes are fixed; the camera is what moves.
     const renderer = new GraphRenderer(canvas, data, readPalette(data.topics), {
       onHover: setHovered,
       onSelect: (node) =>
         navRef.current(`/graph/${node.slug}`, {
           state: openTitleRef.current ? { fromTitle: openTitleRef.current } : undefined,
         }),
-      onDragStart: () => {},
-      onDrag: (node, x, y) => worker?.postMessage({ type: 'drag', id: node.id, x, y }),
-      onDragEnd: (node) => worker?.postMessage({ type: 'release', id: node.id }),
     });
     rendererRef.current = renderer;
-
-    if (!reduceMotion) {
-      worker = new Worker(new URL('./sim.worker.ts', import.meta.url), { type: 'module' });
-
-      const positions = new Float32Array(data.nodes.length * 2);
-      const degrees = new Int32Array(data.nodes.length);
-      const kinds = new Uint8Array(data.nodes.length);
-      for (let i = 0; i < data.nodes.length; i++) {
-        const n = data.nodes[i];
-        positions[i * 2] = n.x;
-        positions[i * 2 + 1] = n.y;
-        degrees[i] = n.degree;
-        kinds[i] = n.kind === 'course' ? 1 : n.kind === 'index' ? 2 : 0;
-      }
-
-      worker.onmessage = (e: MessageEvent<{ type: 'tick'; positions: Float32Array }>) => {
-        if (e.data.type === 'tick') renderer.updatePositions(e.data.positions);
-      };
-      worker.postMessage({
-        type: 'init',
-        positions,
-        edges: Int32Array.from(data.edges),
-        degrees,
-        kinds,
-        pinned: data.indexId,
-      });
-    }
 
     // The landing camera. Set here rather than left to the constructor's fit()
     // so it uses the same framing "Start here" does, panel space included.
@@ -186,8 +156,6 @@ export default function GraphPage() {
     return () => {
       ro.disconnect();
       renderer.dispose();
-      worker?.postMessage({ type: 'stop' });
-      worker?.terminate();
       rendererRef.current = null;
     };
   }, [data]);

@@ -83,16 +83,19 @@ needed; don't loosen the pattern.
 
 ## Things that bite
 
-**Course nodes are pinned on a spiral, not simulated.**
-`scripts/build-graph.mjs` walks the courses in primary-topic order (so the
-spiral passes through related subjects and their shared notes sit between them),
-gives each one an even share of `TURNS` revolutions, and grows the radius from
-`R_MIN` to `R_MAX` across them — then pins them there for the solve. So the shipped
-coordinates *are* the spiral. `sim.worker.ts` re-pins each course at the position
-it loads from `graph.json` and returns it there when a drag ends, which means it
-needs no radius, angle or turn count of its own: the one layout constant that
-deliberately does *not* live in two places. Don't "fix" this by giving the worker
-its own spiral maths.
+**Nothing simulates at runtime.** The layout is solved once, at build time, and
+the shipped coordinates in `graph.json` are final — there is no worker and no
+d3-force in the bundle. Nodes cannot be dragged; the camera is the only thing
+that moves. Re-introducing a simulation would reproduce the same equilibrium at
+the cost of a hot CPU on a phone, and it would break panning on touch: the graph
+is dense enough that most of the canvas is nodes, so a swipe that starts on one
+would move that node instead of the view.
+
+**Course nodes are pinned on a spiral.** `scripts/build-graph.mjs` walks the
+courses in primary-topic order (so the spiral passes through related subjects and
+their shared notes sit between them), gives each one an even share of `TURNS`
+revolutions, and grows the radius from `R_MIN` to `R_MAX` across them — then pins
+them there for the solve. The shipped coordinates *are* the spiral.
 
 `R_MIN` sets the spacing, since consecutive courses are roughly
 `R_MIN * 2*PI*TURNS/n` apart at the tight inner end — more turns buy more room
@@ -106,12 +109,12 @@ force fixes bearing but not distance, which balances the graph only roughly. And
 a constant radius gives a clean ring, but every course ends up exactly as far
 from the index as every other, which reads as mechanical.
 
-**Layout constants live in three places and must agree.** Node radius, link
-distance and collision padding appear in `scripts/build-graph.mjs` (build-time
-solve), `src/graph/sim.worker.ts` (runtime sim) and `src/graph/renderer.ts`
-(drawing). If they drift, the graph visibly lurches on the first drag as the
-runtime settles into a different equilibrium than the shipped coordinates.
-`scripts/render-preview.mjs` mirrors the radius too.
+**Node radius lives in three places and must agree.** `scripts/build-graph.mjs`
+(the collision term in the solve), `src/graph/renderer.ts` (drawing, hit-testing
+and where a label sits) and `scripts/render-preview.mjs` (the card art). They no
+longer have to match to avoid a lurch — nothing re-simulates — but if the
+renderer's radius drifts from the build's, labels and clicks land off the discs
+they belong to, and the card art stops matching the live graph.
 
 **Wikilink parsing lives in two places and must agree.** `extractLinks` in the
 build script and `remarkWikilink` at runtime. Both must strip the alias pipe
@@ -132,9 +135,7 @@ URL.
 
 **tsconfig is not strict but has teeth.** `erasableSyntaxOnly` rules out
 constructor parameter properties and enums; `verbatimModuleSyntax` requires
-`import type`; `noUnusedLocals` fails the build on a stray constant. Worker code
-typechecks under a separate `tsconfig.worker.json` because `WebWorker` and `DOM`
-libs collide.
+`import type`; `noUnusedLocals` fails the build on a stray constant.
 
 **The canvas can't read CSS variables.** `src/graph/palette.ts` resolves them
 through a hidden probe element, the same trick `getThemeAssetUrls()` uses in
