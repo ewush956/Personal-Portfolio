@@ -11,6 +11,9 @@
   --bg-hero: var(--bg-scrim),
     url('/images/home-bg.avif') center center / cover no-repeat,
     var(--bg-fallback);
+  --bg-education: var(--bg-scrim),
+    url('/images/projects-bg.avif') center center / cover no-repeat,
+    var(--bg-fallback);
   --bg-projects: var(--bg-scrim),
     url('/images/projects-bg.avif') center center / cover no-repeat,
     var(--bg-fallback);
@@ -61,4 +64,37 @@
   --atmos-size: 44px 44px;
   --atmos-opacity: 1;
   --vignette: radial-gradient(120% 80% at 50% 120%, rgba(255, 92, 244, 0.18), transparent 60%);
+}
+
+/* --- Graph view ------------------------------------------------------- */
+/* Full neon spectrum: the one theme whose palette invites all ten hues. */
+[data-theme='synthwave'] {
+  --graph-bg: #07040f;
+  --graph-link: rgba(169, 159, 214, 0.16);
+  --graph-link-highlight: #06eeff;
+  --graph-node-index: #ffffff;
+  --graph-node-course: #b9b2e8;
+  --graph-node-dim: rgba(169, 159, 214, 0.28);
+  --graph-label: #e9e6ff;
+  --graph-panel-bg: rgba(20, 10, 44, 0.94);
+  --graph-panel-border: rgba(6, 238, 255, 0.35);
+
+  --graph-topic-1: #22e0ff;
+  --graph-topic-2: #5c8bff;
+  --graph-topic-3: #9d6bff;
+  --graph-topic-4: #ff5cf4;
+  --graph-topic-5: #ff5c9e;
+  --graph-topic-6: #ff6b6b;
+  --graph-topic-7: #ff9f43;
+  --graph-topic-8: #ffd93d;
+  --graph-topic-9: #b8ff4d;
+  --graph-topic-10: #2af5b6;
+}
+
+/* --- Note callouts ------------------------------------------------------ */
+[data-theme='synthwave'] {
+  --callout-note: #22e0ff;
+  --callout-tip: #2af5b6;
+  --callout-warn: #ffd93d;
+  --callout-danger: #ff5c9e;
 }

@@ -10,6 +10,9 @@
   --bg-hero: var(--bg-scrim),
     url('/images/backgrounds/editorial-hero.jpg') center center / cover no-repeat,
     var(--bg-fallback);
+  --bg-education: var(--bg-scrim),
+    url('/images/backgrounds/editorial-education.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
   --bg-projects: var(--bg-scrim),
     url('/images/backgrounds/editorial-projects.jpg') center center / cover no-repeat,
     var(--bg-fallback);
@@ -59,4 +62,38 @@
   --atmos-size: 120px 120px;
   --atmos-opacity: 1;
   --vignette: none;
+}
+
+/* --- Graph view ------------------------------------------------------- */
+/* The one light theme: every topic color is an ink, dark enough to hold
+   contrast on warm paper. Lightening these for "vibrance" breaks the page. */
+[data-theme='editorial'] {
+  --graph-bg: #f4efe6;
+  --graph-link: rgba(33, 29, 23, 0.14);
+  --graph-link-highlight: #c2410c;
+  --graph-node-index: #14110d;
+  --graph-node-course: #6b6154;
+  --graph-node-dim: rgba(33, 29, 23, 0.22);
+  --graph-label: #211d17;
+  --graph-panel-bg: #fffdf8;
+  --graph-panel-border: rgba(33, 29, 23, 0.16);
+
+  --graph-topic-1: #c2410c;
+  --graph-topic-2: #9a2f0a;
+  --graph-topic-3: #1e4e8c;
+  --graph-topic-4: #0f766e;
+  --graph-topic-5: #4d7c0f;
+  --graph-topic-6: #7c2d92;
+  --graph-topic-7: #a16207;
+  --graph-topic-8: #b91c47;
+  --graph-topic-9: #3f4a5a;
+  --graph-topic-10: #6d4c2f;
+}
+
+/* --- Note callouts ------------------------------------------------------ */
+[data-theme='editorial'] {
+  --callout-note: #1e4e8c;
+  --callout-tip: #0f766e;
+  --callout-warn: #a16207;
+  --callout-danger: #b91c47;
 }
