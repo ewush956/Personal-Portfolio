@@ -5,6 +5,7 @@ import { Backgrounds } from './components/Backgrounds';
 import { NavRail } from './components/NavRail';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { Hero } from './components/Hero';
+import { Education } from './components/Education';
 import { Projects } from './components/Projects';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
@@ -21,7 +22,7 @@ export default function App() {
   }, [collapsed]);
 
   // Single scroll-spy observer, shared by the backgrounds and the nav rail.
-  const active = useActiveSection(['top', 'projects', 'contact'], 'top');
+  const active = useActiveSection(['top', 'education', 'projects', 'contact'], 'top');
 
   const railWidth: CSSProperties = { ['--rail-w' as string]: collapsed ? '76px' : '216px' };
 
@@ -33,6 +34,7 @@ export default function App() {
         <ThemeSwitcher />
         <main>
           <Hero />
+          <Education />
           <Projects />
           <Contact />
         </main>

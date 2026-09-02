@@ -3,6 +3,7 @@ import { BRAND_ICONS } from '../themes/brandIcons';
 import {
   ChevronIcon,
   ContactIcon,
+  EducationIcon,
   GithubIcon,
   HomeIcon,
   LinkedinIcon,
@@ -21,9 +22,10 @@ interface NavItem {
 }
 
 const SECTION_ITEMS: NavItem[] = [
-  { label: 'Home', href: '#top', icon: <HomeIcon />, sectionId: 'top' },
-  { label: 'Projects', href: '#projects', icon: <ProjectsIcon />, sectionId: 'projects' },
-  { label: 'Contact', href: '#contact', icon: <ContactIcon />, sectionId: 'contact' },
+  { label: 'Home', href: '/#top', icon: <HomeIcon />, sectionId: 'top' },
+  { label: 'Education', href: '/#education', icon: <EducationIcon />, sectionId: 'education' },
+  { label: 'Projects', href: '/#projects', icon: <ProjectsIcon />, sectionId: 'projects' },
+  { label: 'Contact', href: '/#contact', icon: <ContactIcon />, sectionId: 'contact' },
 ];
 
 const EXTERNAL_ITEMS: NavItem[] = [

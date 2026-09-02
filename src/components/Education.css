@@ -1,0 +1,174 @@
+/* Education — one wide billboard card, deliberately not a grid item, so it
+   reads as its own statement rather than a fourth project. */
+
+.edu-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 0;
+  overflow: hidden;
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.edu-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--card-pad);
+  min-width: 0;
+}
+
+.edu-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.edu-card__degree {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-display);
+  text-transform: var(--heading-transform);
+  letter-spacing: var(--heading-tracking);
+  /* text-2xl wraps to three lines once a theme adds uppercase and wide
+     tracking (Cinzel on Sleep Token, Press Start on Doom). */
+  font-size: var(--text-xl);
+  color: var(--color-heading);
+  text-shadow: var(--heading-glow);
+}
+
+.edu-card__school {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--color-text);
+}
+
+.edu-card__when,
+.edu-card__focus {
+  color: var(--color-muted);
+}
+
+.edu-card__focus {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+.edu-card__blurb {
+  margin: 0;
+  max-width: 56ch;
+  color: var(--color-text);
+}
+
+/* Credentials read as a small stat row — the number carries, the label
+   supports it. */
+.edu-card__creds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin: 0;
+}
+
+.edu-cred dt {
+  font-size: var(--text-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.edu-cred dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+/* The CTA is the point of the card, so it gets real size. */
+.edu-cta {
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+  padding: var(--space-3) var(--space-5);
+  text-decoration: none;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border: var(--btn-border);
+  border-radius: var(--btn-radius);
+  box-shadow: var(--btn-shadow);
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.edu-cta:hover,
+.edu-cta:focus-visible {
+  background: var(--btn-hover-bg);
+  transform: translateY(-2px);
+}
+
+.edu-cta__label {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  line-height: 1.15;
+  text-transform: var(--heading-transform);
+  letter-spacing: var(--heading-tracking);
+}
+
+.edu-cta__meta {
+  max-width: 46ch;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  opacity: 0.8;
+}
+
+/* Preview: a real render of the graph, regenerated on every vault sync. */
+.edu-card__preview {
+  position: relative;
+  display: block;
+  min-height: 260px;
+  overflow: hidden;
+}
+
+.edu-card__preview img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Bleed the render into the card instead of sitting on it as a photo. */
+  mask-image: linear-gradient(90deg, transparent, #000 22%);
+  transition: transform 0.8s var(--ease);
+}
+
+.edu-card:hover .edu-card__preview img {
+  transform: scale(1.04);
+}
+
+@media (max-width: 860px) {
+  .edu-card {
+    grid-template-columns: 1fr;
+  }
+
+  /* Preview leads on narrow screens, where a side-by-side would crush both. */
+  .edu-card__preview {
+    order: -1;
+    min-height: 200px;
+  }
+
+  .edu-card__preview img {
+    mask-image: linear-gradient(180deg, #000 55%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edu-cta,
+  .edu-card__preview img {
+    transition: none;
+  }
+
+  .edu-card:hover .edu-card__preview img {
+    transform: none;
+  }
+}
