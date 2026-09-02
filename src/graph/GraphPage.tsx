@@ -16,6 +16,21 @@ import './GraphPage.css';
 // graph itself, and nobody needs it until they open a note.
 const NotePanel = lazy(() => import('./NotePanel'));
 
+/**
+ * The chrome covering the canvas when a note is open.
+ *
+ * Used for the landing view too, where nothing is open yet: reserving the
+ * panel's space up front is what lets the first click on "Start here" leave the
+ * camera exactly where it already was.
+ */
+function panelInset(fullscreen: boolean) {
+  const wide = window.innerWidth > 720;
+  return {
+    right: fullscreen ? 0 : wide ? Math.min(560, window.innerWidth * 0.92) : 0,
+    bottom: fullscreen ? 0 : wide ? 0 : window.innerHeight * 0.62,
+  };
+}
+
 export default function GraphPage() {
   const { themeId } = useTheme();
   const [data, setData] = useState<GraphData | null>(null);
@@ -155,6 +170,13 @@ export default function GraphPage() {
       });
     }
 
+    // The landing camera. Set here rather than left to the constructor's fit()
+    // so it uses the same framing "Start here" does, panel space included.
+    renderer.surveyFrame(panelInset(false));
+
+    // Deliberately only resize and redraw: re-framing here would throw away a
+    // pan or zoom the reader had made, and the whole point of the camera rules
+    // above is that their view is the one that holds. Reset re-frames on demand.
     const ro = new ResizeObserver(() => {
       renderer.resize();
       renderer.draw();
@@ -182,7 +204,7 @@ export default function GraphPage() {
   }, []);
 
   const handleReset = useCallback(() => {
-    rendererRef.current?.fit();
+    rendererRef.current?.surveyFrame(panelInset(false));
     setLastFocusId(null);
     navigate('/graph');
   }, [navigate]);
@@ -209,31 +231,20 @@ export default function GraphPage() {
   useEffect(() => {
     const selected = openNote;
     if (!selected) return;
-    const wide = window.innerWidth > 720;
-    const renderer = rendererRef.current;
 
-    // How close to get. Landing at 2.2 filled the screen with the node you
-    // clicked and three of its neighbours — you lost all sense of where you
-    // were. Pulling back keeps the neighbourhood and its surroundings in frame,
-    // and the highlighted labels are drawn regardless of zoom so nothing
-    // becomes unreadable. A phone gets a wider view still, because the sheet
-    // takes most of the screen and what's left is narrow.
+    // Only "Start here" moves the camera.
     //
-    // "Start here" is a survey rather than a destination, so it stays wider
-    // again — relative to the fitted zoom, which already accounts for viewport.
-    const zoom =
-      selected.kind === 'index'
-        ? (renderer?.fittedZoom ?? 1) * 1.5
-        : wide
-          ? 1.4
-          : 1;
+    // Every other node used to be framed on open, which meant the view jumped
+    // on every click — you'd get your bearings, open something, and land
+    // somewhere else at a different zoom. Now the reader's own pan and zoom is
+    // the one that holds: opening a note lights it up and fills the panel, and
+    // the graph stays exactly where it was put. "Start here" is the deliberate
+    // exception, because it is a survey rather than a destination.
+    if (selected.kind !== 'index') return;
 
-    // With the note full screen the graph is entirely covered, so there's no
-    // visible region to frame into — centre it normally for when you come back.
-    renderer?.focus(selected, zoom, {
-      right: fullscreen ? 0 : wide ? Math.min(560, window.innerWidth * 0.92) : 0,
-      bottom: fullscreen ? 0 : wide ? 0 : window.innerHeight * 0.62,
-    });
+    // The same framing the landing view already uses, so opening the index
+    // turns the course labels on without moving the camera at all.
+    rendererRef.current?.surveyFrame(panelInset(fullscreen));
   }, [openNote, fullscreen]);
 
   if (error) {

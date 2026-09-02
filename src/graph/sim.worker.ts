@@ -21,6 +21,11 @@ interface SimNode {
   radius: number;
   /** Collision padding — courses reserve much more space than their radius. */
   pad: number;
+  /** 0 = note, 1 = course, 2 = index. */
+  kind: number;
+  /** Spiral slot for a course: where it is pinned, and where a drag returns it. */
+  homeX: number;
+  homeY: number;
   x: number;
   y: number;
   vx?: number;
@@ -40,7 +45,7 @@ export type SimIn =
       positions: Float32Array;
       edges: Int32Array;
       degrees: Int32Array;
-      /** 0 = note, 1 = course, 2 = index. Only used for collision spacing. */
+      /** 0 = note, 1 = course, 2 = index. Drives collision spacing and the pins. */
       kinds: Uint8Array;
       pinned: number;
     }
@@ -80,7 +85,10 @@ ctx.onmessage = (e: MessageEvent<SimIn>) => {
       // Mirrors SPACING in scripts/build-graph.mjs. Index gets a moat so it
       // can't be mis-clicked, courses enough room not to merge, notes just
       // enough that no two discs ever overlap.
-      pad: msg.kinds[i] === 2 ? 60 : msg.kinds[i] === 1 ? 30 : 2,
+      pad: msg.kinds[i] === 2 ? 60 : msg.kinds[i] === 1 ? 34 : 2,
+      kind: msg.kinds[i],
+      homeX: msg.positions[i * 2],
+      homeY: msg.positions[i * 2 + 1],
       x: msg.positions[i * 2],
       y: msg.positions[i * 2 + 1],
     }));
@@ -94,6 +102,19 @@ ctx.onmessage = (e: MessageEvent<SimIn>) => {
     nodes[pinned].fx = nodes[pinned].x;
     nodes[pinned].fy = nodes[pinned].y;
 
+    // Courses hold their spiral slot. build-graph.mjs pinned them onto the
+    // spiral to solve the layout, so the shipped coordinates *are* the spiral —
+    // re-pinning here needs no radius, angle or turn count of its own, and
+    // nothing can drift out of step with the build. A course still drags; it
+    // returns to its slot on release, so the frame cannot be pulled out of
+    // shape.
+    for (const n of nodes) {
+      if (n.kind === 1) {
+        n.fx = n.homeX;
+        n.fy = n.homeY;
+      }
+    }
+
     // Mirrors scripts/build-graph.mjs exactly. If these drift apart the graph
     // visibly lurches on first drag as it settles into a different equilibrium.
     sim = forceSimulation<SimNode, SimLink>(nodes)
@@ -102,7 +123,7 @@ ctx.onmessage = (e: MessageEvent<SimIn>) => {
         'link',
         forceLink<SimNode, SimLink>(links)
           .id((d) => d.index)
-          .distance(95)
+          .distance(110)
           .strength(0.35),
       )
       .force('x', forceX<SimNode>(0).strength((d) => (d.degree === 0 ? 0.3 : 0.02)))
@@ -133,8 +154,9 @@ ctx.onmessage = (e: MessageEvent<SimIn>) => {
   if (msg.type === 'release') {
     const n = nodes[msg.id];
     if (n && msg.id !== pinned) {
-      n.fx = null;
-      n.fy = null;
+      // Courses snap back to their spiral slot; notes are simply let go.
+      n.fx = n.kind === 1 ? n.homeX : null;
+      n.fy = n.kind === 1 ? n.homeY : null;
     }
     // Let it coast to a stop. d3 stops its own timer once alpha decays below
     // alphaMin, so no polling and no idle work.

@@ -38,8 +38,8 @@ export const EDUCATION = {
 
   /** The call to action through to /graph. */
   cta: {
-    label: 'Step inside four years of thinking',
+    label: 'Start Learning',
     /** Sits under the label; the counts are appended after it. */
-    lead: 'Every note I took, every link I drew between them —',
+    lead: 'See how all the ideas from a computer science degree work together —',
   },
 } as const;

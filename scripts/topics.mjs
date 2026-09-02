@@ -4,8 +4,11 @@
    The vault carries 513 distinct topic tags, 418 of which appear exactly once,
    so buckets cannot be derived from the tag set — they are curated here.
 
-   Ten buckets, chosen to stay legible as ten distinguishable colors on screen.
-   Each maps to --graph-topic-<n> in the theme token contract.
+   Twelve buckets. The first ten cover the CS and mathematics core; the last two
+   were added for the physics/astronomy electives and the ethics course, which
+   the core ten had no honest home for. Each maps to --graph-topic-<n> in the
+   theme token contract. Twelve is past the point where every colour reads as
+   distinct on the narrower palettes (Doom, Hacker Bro), so treat it as full.
 
    A node can belong to several buckets at once, and the filter shows it if any
    one of them is enabled. Resolution order (see resolveTopics below):
@@ -26,6 +29,8 @@ export const TOPICS = [
   { id: 'web', label: 'Web, Networks & Data' },
   { id: 'security', label: 'Security & Cryptography' },
   { id: 'languages', label: 'Languages & Software Design' },
+  { id: 'physics-astro', label: 'Physics & Astronomy' },
+  { id: 'ethics-society', label: 'Ethics & Society' },
 ];
 
 export const TOPIC_IDS = TOPICS.map((t) => t.id);
@@ -176,6 +181,28 @@ const TAG_TO_TOPIC = {
   debugging: 'languages',
   errors: 'languages',
   performance: 'languages',
+  hci: 'languages',
+  usability: 'languages',
+
+  // -- Physics & Astronomy -----------------------------------------------
+  physics: 'physics-astro',
+  mechanics: 'physics-astro',
+  astronomy: 'physics-astro',
+  astrophysics: 'physics-astro',
+  cosmology: 'physics-astro',
+  kinematics: 'physics-astro',
+  dynamics: 'physics-astro',
+  energy: 'physics-astro',
+  momentum: 'physics-astro',
+  stars: 'physics-astro',
+  galaxies: 'physics-astro',
+
+  // -- Ethics & Society --------------------------------------------------
+  ethics: 'ethics-society',
+  society: 'ethics-society',
+  privacy: 'ethics-society',
+  law: 'ethics-society',
+  policy: 'ethics-society',
 };
 
 /**
@@ -195,6 +222,8 @@ const FOLDER_TO_TOPIC = {
   'COMP 2633': 'languages',
   'COMP 2655': 'systems',
   'COMP 2659': 'systems',
+  'COMP 3309': 'ethics-society',
+  'COMP 3553': 'languages',
   'COMP 3612': 'web',
   'COMP 3649': 'languages',
   'COMP 3659': 'systems',
@@ -208,6 +237,10 @@ const FOLDER_TO_TOPIC = {
   'MATH 3200': 'math-analysis',
   'MATH 4111': 'security',
   'MATH 4199': 'math-analysis',
+  'COMP 4299': 'math-stats',
+  'PHIL 1179': 'theory',
+  'PHYS 1201': 'physics-astro',
+  'ASTR 1103': 'physics-astro',
   'COMP 4TH YEAR': 'ml-ai',
   Books: 'ml-ai',
   'Web Interview Prep': 'web',
@@ -239,6 +272,9 @@ const COURSE_TOPICS = {
   'WEB DEVELOPMENT FOR CS': ['web'],
   'ARTIFICIAL INTELLIGENCE': ['ml-ai', 'algorithms'], // A*, best-first, adversarial search
   'MACHINE LEARNING': ['ml-ai', 'math-stats', 'math-algebra'], // loss/probability, matrices, PCA
+  'HUMAN COMPUTER INTERACTION': ['languages'], // design and evaluation of the software itself
+  'INFORMATION TECHNOLOGY AND SOCIETY': ['ethics-society'],
+  'DIRECTED READING': ['math-stats', 'languages'], // risk measures, and the dashboard that ships them
 
   // -- Mathematics --------------------------------------------------------
   'CALCULUS 1': ['math-analysis'],
@@ -246,10 +282,16 @@ const COURSE_TOPICS = {
   'MATHEMATICAL METHODS': ['math-analysis'],
   'FOURIER AND COMPLEX ANALYSIS': ['math-analysis'],
   'LINEAR ALGEBRA': ['math-algebra'],
+  'LINEAR ALGEBRA FOR DATA SCIENCE': ['math-algebra', 'math-stats'], // least squares on real data
   'ABSTRACT ALGEBRA': ['math-algebra'],
   'DISCRETE MATH': ['theory'],
+  'SYMBOLIC LOGIC': ['theory'], // propositional and predicate logic, proof procedures
   STATISTICS: ['math-stats'],
   CRYPTOGRAPHY: ['security', 'math-algebra'], // number theory, groups, elliptic curves
+
+  // -- Physics and astronomy ----------------------------------------------
+  'CLASSICAL PHYSICS 1': ['physics-astro'],
+  'THE UNIVERSE AT LARGE': ['physics-astro'],
 
   // -- Everything else linked from the index ------------------------------
   'THE NEW TURING OMNIBUS': ['theory', 'algorithms'],

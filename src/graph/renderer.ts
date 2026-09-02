@@ -34,9 +34,13 @@ export interface RendererCallbacks {
    absolute scales — "how far have you zoomed in from the starting view" is the
    question that matters, and it has to mean the same thing on a laptop and on a
    4K monitor. At the initial view only the index is named; courses appear once
-   you lean in, notes once you're properly close. */
+   you lean in or open "Start here", notes once you're properly close. */
 const LABEL_ZOOM_COURSE = 1.6;
 const LABEL_ZOOM_NOTE = 4.5;
+/** How far the survey view sits below centre, as a share of viewport height.
+    Bounded by the lowest course label, not by the nodes: at 0.065 the bottom
+    row runs within ~20px of the edge on a 1280x800, which reads as clipped. */
+const SURVEY_DROP = 0.055;
 const MIN_K = 0.08;
 const MAX_K = 12;
 
@@ -200,9 +204,69 @@ export class GraphRenderer {
     this.invalidate();
   }
 
+  /**
+   * The survey view: the index centred with every course, and every course
+   * label, around it.
+   *
+   * This is both the landing view and where "Start here" goes, deliberately the
+   * same camera. Opening the index used to zoom and pan from wherever you were,
+   * which read as a lurch on the one click most people make first; now it only
+   * turns the labels on. `inset` is passed in both cases even though nothing
+   * covers the canvas on a cold load, because reserving the panel's space up
+   * front is what makes the two views identical.
+   *
+   * The whole frame is nudged down by a little of its own height. The graph's
+   * mass sits above the index — the note clusters hang upward off the spiral —
+   * so centring on the index alone leaves the top labels tight against the edge
+   * and a band of empty canvas underneath. Dropping the frame evens that out,
+   * at the cost of clipping the lowest notes, which are the least interesting
+   * thing on screen.
+   */
+  surveyFrame(inset: { right?: number; bottom?: number } = {}) {
+    const k = this.courseFitZoom(inset);
+    const idx = this.data.nodes[this.data.indexId];
+    this.k = k;
+    this.fitK = k;
+    this.tx = (this.width - (inset.right ?? 0)) / 2 - idx.x * k;
+    this.ty = (this.height - (inset.bottom ?? 0)) / 2 - idx.y * k + this.height * SURVEY_DROP;
+    this.invalidate();
+  }
+
   /** The zoom `fit()` chose — a viewport-independent baseline for camera moves. */
   get fittedZoom() {
     return this.fitK;
+  }
+
+  /**
+   * The zoom at which every course fits in the visible region, centred on the
+   * index.
+   *
+   * "Start here" is a survey rather than a destination — opening it should show
+   * the whole degree at once. Measuring the courses' actual extent is what makes
+   * that true whatever the layout does; a fixed multiple of the fitted zoom
+   * cropped the spiral's outer arm as soon as the ring grew.
+   *
+   * The extent is measured symmetrically around the index because `focus()`
+   * centres on it, and `inset` is the chrome (the reading panel) covering the
+   * canvas, so the fit is against what the reader can actually see.
+   *
+   * `padding` has to clear the *labels*, not just the course discs. Every course
+   * is named in this view and the outer ones carry their names further out
+   * still, so a fit tight enough for the nodes pushes that band off the edge.
+   */
+  courseFitZoom(inset: { right?: number; bottom?: number } = {}, padding = 110) {
+    const idx = this.data.nodes[this.data.indexId];
+    let dx = 0;
+    let dy = 0;
+    for (const n of this.data.nodes) {
+      if (n.kind !== 'course') continue;
+      dx = Math.max(dx, Math.abs(n.x - idx.x) + this.radius(n));
+      dy = Math.max(dy, Math.abs(n.y - idx.y) + this.radius(n));
+    }
+    if (dx === 0 || dy === 0) return this.fitK;
+    const w = Math.max(this.width - (inset.right ?? 0) - padding * 2, 1);
+    const h = Math.max(this.height - (inset.bottom ?? 0) - padding * 2, 1);
+    return Math.max(MIN_K, Math.min(MAX_K, Math.min(w / (dx * 2), h / (dy * 2))));
   }
 
   private toWorld(sx: number, sy: number) {
@@ -602,11 +666,25 @@ export class GraphRenderer {
     /** Breathing room between neighbouring labels, in screen pixels. */
     const GAP = 5;
 
-    const label = (n: GraphNode, size: number, force = false, bold = false) => {
-      const sx = n.x * this.k + this.tx;
-      const sy = n.y * this.k + this.ty + this.radius(n) * this.k + 4;
-      if (sx < -240 || sx > this.width + 240 || sy < -24 || sy > this.height + 24) return;
+    /* Where a course label may go, searched in order: out along the ray from
+       the index, and at each distance a little way around it.
 
+       Course names are long and the courses sit on a spiral, so at a zoom that
+       keeps every one of them on screen there is roughly 3000px of ring to hold
+       4200px of text. Placing each label directly under its node dropped a
+       third of them to collisions — a named graph with a dozen anonymous grey
+       discs left in it. Stepping outward into the empty space beyond the
+       spiral, and swinging a few degrees along the ring when straight out is
+       taken, seats all thirty-two with none overlapping down to 1280x800. A
+       leader line keeps a label that moved attached to the node it names.
+
+       Distances are screen pixels beyond the node's own edge, swings are
+       radians; both smallest-first, so a label only moves as far as it must. */
+    const LADDER = [4, 20, 38, 58, 80, 104, 130, 158, 188, 220];
+    const DEG = Math.PI / 180;
+    const SWINGS = [0, 7 * DEG, -7 * DEG, 15 * DEG, -15 * DEG];
+
+    const label = (n: GraphNode, size: number, force = false, bold = false) => {
       // The index is the way in, so it says so rather than naming itself. Its
       // real title still shows in the readout and on the note it opens. Size is
       // fixed here rather than by the caller, so it doesn't shrink the moment
@@ -618,30 +696,104 @@ export class GraphRenderer {
         bold = true;
       }
 
+      const nx = n.x * this.k + this.tx;
+      const ny = n.y * this.k + this.ty;
+      const edge = this.radius(n) * this.k;
+
       ctx.font = `${bold ? '600 ' : ''}${size}px ui-sans-serif, system-ui, sans-serif`;
       const w = ctx.measureText(text).width;
       const padX = 7;
       const padY = 4;
-      const box = {
-        x0: sx - w / 2 - padX,
-        y0: sy - padY,
-        x1: sx + w / 2 + padX,
-        y1: sy + size + padY,
-      };
 
-      if (!force) {
-        for (const p of placed) {
-          if (
-            box.x0 - GAP < p.x1 &&
-            box.x1 + GAP > p.x0 &&
-            box.y0 - GAP < p.y1 &&
-            box.y1 + GAP > p.y0
-          ) {
-            return;
+      // Courses get the outward ladder; everything else sits under its node.
+      const idx = this.data.nodes[this.data.indexId];
+      const dx = n.x - idx.x;
+      const dy = n.y - idx.y;
+      const d = Math.hypot(dx, dy);
+      const radial = n.kind === 'course' && d > 1e-6;
+
+      const hits = (b: { x0: number; y0: number; x1: number; y1: number }) =>
+        placed.some(
+          (p) => b.x0 - GAP < p.x1 && b.x1 + GAP > p.x0 && b.y0 - GAP < p.y1 && b.y1 + GAP > p.y0,
+        );
+
+      /** Total area `b` would overlap, used to pick the least-bad fallback. */
+      const overlap = (b: { x0: number; y0: number; x1: number; y1: number }) =>
+        placed.reduce((sum, p) => {
+          const ox = Math.min(b.x1, p.x1) - Math.max(b.x0, p.x0);
+          const oy = Math.min(b.y1, p.y1) - Math.max(b.y0, p.y0);
+          return sum + (ox > 0 && oy > 0 ? ox * oy : 0);
+        }, 0);
+
+      type Box = { x0: number; y0: number; x1: number; y1: number };
+      let box: Box | null = null;
+      let sx = 0;
+      let sy = 0;
+      let stepped = false;
+      let fallback: { b: Box; cx: number; cy: number; moved: boolean } | null = null;
+      let fallbackArea = Infinity;
+
+      const rungs = radial ? LADDER : [4];
+      const swings = radial ? SWINGS : [0];
+      outer: for (const [step, extra] of rungs.entries()) {
+        for (const swing of swings) {
+          // Rotating the outward ray lets a blocked label slide along the ring
+          // rather than only further out, which is what closes the last few
+          // collisions in the crowded inner winding.
+          const cos = Math.cos(swing);
+          const sin = Math.sin(swing);
+          const ux = (dx * cos - dy * sin) / d;
+          const uy = (dx * sin + dy * cos) / d;
+          const cx = radial ? nx + ux * (edge + extra) : nx;
+          const cy = radial ? ny + uy * (edge + extra) - size / 2 : ny + edge + 4;
+          if (cx < -240 || cx > this.width + 240 || cy < -24 || cy > this.height + 24) continue;
+          const b: Box = {
+            x0: cx - w / 2 - padX,
+            y0: cy - padY,
+            x1: cx + w / 2 + padX,
+            y1: cy + size + padY,
+          };
+          const moved = step > 0 || swing !== 0;
+          if (force || !hits(b)) {
+            box = b;
+            sx = cx;
+            sy = cy;
+            stepped = moved;
+            break outer;
+          }
+          // On a small enough viewport every slot can be taken. A course is
+          // never left anonymous — a name clipping another still says what the
+          // node is, a bare grey disc says nothing — so keep the cheapest slot
+          // seen and fall back to it. Notes keep the old behaviour and give way.
+          const a = overlap(b);
+          if (radial && a < fallbackArea) {
+            fallbackArea = a;
+            fallback = { b, cx, cy, moved };
           }
         }
       }
+      if (!box && fallback) {
+        box = fallback.b;
+        sx = fallback.cx;
+        sy = fallback.cy;
+        stepped = fallback.moved;
+      }
+      if (!box) return;
       placed.push(box);
+
+      // A label that had to step outward is no longer touching its node, so it
+      // gets a hairline back to it. Drawn under the plate, so the plate covers
+      // the end of the line rather than the line crossing the text.
+      if (stepped) {
+        ctx.globalAlpha = 0.45;
+        ctx.strokeStyle = palette.label;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(nx + (dx / d) * edge, ny + (dy / d) * edge);
+        ctx.lineTo(sx, sy + size / 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
 
       // A filled plate, not just an outline. Over a dense cluster a haloed
       // glyph still competes with whatever colour is behind each stroke; a
@@ -680,10 +832,12 @@ export class GraphRenderer {
       label(this.selected, 15, true);
     }
 
-    // 3. Courses, biggest first — but not at the starting view, where 25 course
-    //    names over the densest part of the graph is exactly the clutter the
-    //    "Start here" node is there to cut through. They arrive as you zoom, and
-    //    immediately whenever they're part of what you've selected or searched.
+    // 3. Courses, biggest first — but not at the starting view, where thirty-odd
+    //    course names over the densest part of the graph is exactly the clutter
+    //    the "Start here" node exists to cut through. They arrive as you zoom,
+    //    and immediately whenever they're part of what you've selected or
+    //    searched — which includes opening "Start here" itself, since every
+    //    course is a neighbour of the index.
     const zoomedForCourses = this.k > this.fitK * LABEL_ZOOM_COURSE;
     for (const n of this.byDegree) {
       if (n.kind !== 'course' || !visible(n)) continue;

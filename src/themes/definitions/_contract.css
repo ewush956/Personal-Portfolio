@@ -27,7 +27,7 @@
      Graph  : --graph-bg --graph-link --graph-link-highlight --graph-label
               --graph-node-index --graph-node-course --graph-node-dim
               --graph-panel-bg --graph-panel-border
-              --graph-topic-1 … --graph-topic-10  (see scripts/topics.mjs)
+              --graph-topic-1 … --graph-topic-12  (see scripts/topics.mjs)
 
    The graph view paints to a <canvas>, which cannot read CSS variables on its
    own. The renderer resolves these through a hidden probe element — the same

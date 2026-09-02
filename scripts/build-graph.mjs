@@ -18,7 +18,14 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, basename, sep } from 'node:path';
 import matter from 'gray-matter';
-import { forceSimulation, forceManyBody, forceLink, forceX, forceY, forceCollide } from 'd3-force';
+import {
+  forceSimulation,
+  forceManyBody,
+  forceLink,
+  forceX,
+  forceY,
+  forceCollide,
+} from 'd3-force';
 import { resolveTopics, courseTopics, TOPICS, TOPIC_IDS } from './topics.mjs';
 
 const VAULT = process.env.VAULT_PATH ?? 'vault';
@@ -38,6 +45,10 @@ const EXCLUDED_DIRS = new Set([
   'textgenerator',
   'Excalidraw',
   'Screenshots',
+  // Raw syllabus dumps pasted in while drafting a course index. Working
+  // material for the Obsidian side only — unlinked, so they shipped as
+  // uncoloured orphan nodes.
+  'inputCourses',
 ]);
 const EXCLUDED_FILE_RE = /\.excalidraw\.md$|\.base$/;
 
@@ -325,6 +336,28 @@ for (const { i, path } of slugOrder) {
   slugOf.set(i, slug);
 }
 
+/**
+ * Course index notes are named in caps in the vault (COMPUTING MACHINERY),
+ * which shouts on the canvas now that every course carries a visible label.
+ * Only all-caps titles are touched, and only for course nodes — a note called
+ * FIFO or DMA is an acronym and must survive as one.
+ */
+const SMALL_WORDS = new Set(['a', 'an', 'and', 'at', 'for', 'in', 'of', 'on', 'or', 'the', 'to']);
+const ACRONYMS = new Set(['CS', 'AI', 'ML', 'IT', 'HCI', 'OS', 'UI', 'UX']);
+
+function titleCase(name) {
+  if (name !== name.toUpperCase()) return name; // already mixed case, leave it
+  return name
+    .split(' ')
+    .map((word, i) => {
+      if (ACRONYMS.has(word)) return word;
+      const lower = word.toLowerCase();
+      if (i > 0 && SMALL_WORDS.has(lower)) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(' ');
+}
+
 const nodes = notes.map((n, i) => {
   const kind = i === indexIdx ? 'index' : courseIdx.has(i) ? 'course' : 'note';
 
@@ -340,7 +373,7 @@ const nodes = notes.map((n, i) => {
 
   return {
     id: i,
-    title: n.name,
+    title: kind === 'course' ? titleCase(n.name) : n.name,
     slug,
     path: n.rel,
     kind,
@@ -392,8 +425,51 @@ withSeededRandom(0x5eed, () => {
   // enough room to stop merging into each other. Notes get a small gap, which
   // combined with full-strength collision below means no two discs overlap at
   // all — overlapping notes are indistinguishable and impossible to aim at.
-  const SPACING = { index: 60, course: 30, note: 2 };
+  const SPACING = { index: 60, course: 34, note: 2 };
   const pad = (d) => SPACING[nodes[d.id].kind];
+
+  // Courses are pinned on a spiral winding out from the index.
+  //
+  // Left to links and charge alone the course hubs clumped to one side, leaving
+  // the index in a corner with the whole graph hanging off it. Soft forces do
+  // not fix that: `forceRadial` constrains a course's distance from the index
+  // but not its bearing, so the clumping survives, and a tangential force that
+  // constrains bearing but not distance only balances it roughly. Pinning is
+  // what actually holds the arrangement, so the courses are pinned outright,
+  // the same way the index is.
+  //
+  // A constant radius gives a clean ring but every course ends up exactly as
+  // far from the index as every other, which reads as mechanical. Growing the
+  // radius as the angle advances keeps the even angular spread and the balance
+  // around the index, while giving the arrangement depth: each course sits a
+  // little further out than the last.
+  //
+  // TURNS is how many times the spiral wraps. The radius is what does the work
+  // on spacing — at TURNS turns, consecutive courses are R_MIN * 2*PI*TURNS/n
+  // apart at the tight inner end, so R_MIN is what stops the middle crowding.
+  // Order is by primary topic, so the spiral walks through related subjects and
+  // their shared notes sit between them rather than crossing the middle.
+  const TURNS = 2;
+  const R_MIN = 300;
+  const R_MAX = 1000;
+
+  const ringOrder = nodes
+    .map((n, i) => [n, i])
+    .filter(([n]) => n.kind === 'course')
+    .sort(
+      ([a], [b]) =>
+        (TOPIC_IDS.indexOf(a.topics[0]) + 1 || 99) - (TOPIC_IDS.indexOf(b.topics[0]) + 1 || 99) ||
+        a.title.localeCompare(b.title),
+    )
+    .map(([, i]) => i);
+
+  for (const [k, id] of ringOrder.entries()) {
+    const t = k / ringOrder.length;
+    const theta = 2 * Math.PI * TURNS * t;
+    const r = R_MIN + (R_MAX - R_MIN) * t;
+    simNodes[id].fx = Math.cos(theta) * r;
+    simNodes[id].fy = Math.sin(theta) * r;
+  }
 
   const sim = forceSimulation(simNodes)
     .force('charge', forceManyBody().strength(-140).distanceMax(3000))
@@ -401,7 +477,7 @@ withSeededRandom(0x5eed, () => {
       'link',
       forceLink(simLinks)
         .id((d) => d.id)
-        .distance(95)
+        .distance(110)
         .strength(0.35),
     )
     // Not forceCenter: it translates every node so the centroid lands on the
@@ -421,6 +497,10 @@ withSeededRandom(0x5eed, () => {
     .force('collide', forceCollide().radius((d) => radius(d) + pad(d)).iterations(3).strength(1))
     .stop();
 
+  // 500 ticks with d3's default decay. Alpha is under alphaMin by tick 300, so
+  // the tail is nearly free — but annealing slower and longer was tried and is
+  // strictly worse: given room to keep moving, the course ring settles into a
+  // taller, less circular minimum than the one the default schedule freezes.
   const ticks = 500;
   for (let i = 0; i < ticks; i++) {
     sim.tick();
@@ -476,7 +556,7 @@ for (const [i, n] of notes.entries()) {
   writeFileSync(
     join(NOTES_DIR, `${nodes[i].slug}.json`),
     JSON.stringify({
-      title: n.name,
+      title: nodes[i].title,
       slug: nodes[i].slug,
       path: n.rel,
       tags: n.tags,

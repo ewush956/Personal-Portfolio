@@ -20,7 +20,10 @@ const OUT_DIR = 'public/images';
 
 const W = 1400;
 const H = 1000;
-const PAD = 48;
+// Breathing room around the layout. The card crops this with object-fit:cover,
+// so the render has to sit looser than it would as a standalone image or the
+// spiral's outer arm gets clipped at the card's edges.
+const PAD = 100;
 
 /** Pull every --graph-* declaration out of a theme file. */
 function readTokens(themeId) {
