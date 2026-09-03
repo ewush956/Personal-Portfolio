@@ -793,6 +793,10 @@ writeFileSync(
     `  notes: ${nodes.length},\n` +
     `  courses: ${courseCount},\n` +
     `  links: ${edgePairs.length},\n` +
+    // The phone opens the index on arrival. Knowing its slug at build time is
+    // what lets that redirect happen on mount rather than waiting for
+    // graph.json — see the auto-open effect in GraphPage.
+    `  indexSlug: '${nodes[indexIdx].slug}',\n` +
     `} as const;\n`,
 );
 

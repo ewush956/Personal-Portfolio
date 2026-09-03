@@ -136,15 +136,34 @@ export default function GraphPage() {
   //
   // Once only, and via replace, so it doesn't sit in the history and closing
   // the sheet doesn't immediately reopen it.
+  //
+  // On mount, not on `data`. The index's slug is known at build time, so this
+  // does not need graph.json — and waiting for it made the phone's arrival
+  // lurch. The renderer is built in the same commit the data lands in and
+  // frames itself immediately; with the redirect one commit behind, that first
+  // framing was computed for a page with no note open — the bottom of the band
+  // being the topic list — and the redirect then re-framed it for the sheet, a
+  // different zoom, one commit later. Redirecting first means `slug` is already
+  // set when the data arrives, so the first frame is the final one.
   const autoOpened = useRef(false);
   useEffect(() => {
-    if (!data || slug || autoOpened.current) return;
+    if (slug || autoOpened.current) return;
     if (window.innerWidth > NARROW) return;
     autoOpened.current = true;
-    navigate(`/graph/${data.nodes[data.indexId].slug}`, { replace: true });
-  }, [data, slug, navigate]);
+    navigate(`/graph/${GRAPH_STATS.indexSlug}`, { replace: true });
+  }, [slug, navigate]);
 
-  const [enabledTopics, setEnabledTopics] = useState<Set<string>>(new Set());
+  /* Which topics are shown, or null while the reader has not touched the
+     filter — which is every topic.
+
+     The distinction matters because an *empty* set is a real state: turning
+     everything off in the legend is allowed, and it means "show nothing". This
+     used to start as an empty set and get filled in by an effect once the data
+     arrived, so for one commit after the load "nothing chosen yet" and "the
+     reader turned everything off" were the same value, and the renderer was
+     handed a filter that matched no node. The graph blinked empty and then
+     filled in. */
+  const [enabledTopics, setEnabledTopics] = useState<Set<string> | null>(null);
   const [showCourses, setShowCourses] = useState(true);
   // Courses by default: at the opening view it's the only mode that names
   // anything useful without burying the graph in note titles.
@@ -292,12 +311,15 @@ export default function GraphPage() {
   const railWidth: CSSProperties = {
     ['--rail-w' as string]: railCollapsed ? '76px' : '216px',
   };
-  // Everything on once the topic list is known.
-  useEffect(() => {
-    if (data) setEnabledTopics(new Set(data.topics.map((t) => t.id)));
-  }, [data]);
 
-  const allTopicsOn = data ? enabledTopics.size === data.topics.length : true;
+  const allTopicIds = useMemo(
+    () => new Set((data?.topics ?? []).map((t) => t.id)),
+    [data],
+  );
+  /** What the legend shows as ticked: the reader's set, or every topic until
+      they have one. Materialised only when they first change it. */
+  const shownTopics = enabledTopics ?? allTopicIds;
+  const allTopicsOn = enabledTopics === null || !data || enabledTopics.size === data.topics.length;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<GraphRenderer | null>(null);
@@ -407,8 +429,8 @@ export default function GraphPage() {
 
   useEffect(() => {
     // null means "no topic filter", which skips the per-node check on every draw.
-    rendererRef.current?.setFilter(allTopicsOn ? null : enabledTopics, showCourses);
-  }, [enabledTopics, allTopicsOn, showCourses, data]);
+    rendererRef.current?.setFilter(allTopicsOn ? null : shownTopics, showCourses);
+  }, [shownTopics, allTopicsOn, showCourses, data]);
 
   // `data` is in the deps because the renderer doesn't exist until the graph
   // has loaded. Keyed on labelMode alone, this ran once against a null ref and
@@ -557,12 +579,12 @@ export default function GraphPage() {
         <GraphLegend
           topics={data.topics}
           nodes={data.nodes}
-          enabled={enabledTopics}
+          enabled={shownTopics}
           showCourses={showCourses}
           onToggleCourses={() => setShowCourses((v) => !v)}
           onToggle={(id) =>
             setEnabledTopics((prev) => {
-              const next = new Set(prev);
+              const next = new Set(prev ?? allTopicIds);
               if (next.has(id)) next.delete(id);
               else next.add(id);
               return next;
