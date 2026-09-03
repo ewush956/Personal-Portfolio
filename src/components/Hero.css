@@ -68,6 +68,14 @@
   border: var(--card-border);
 }
 
+/* Phone: the wrapper isn't a box at all, so the photo and the copy are the
+   same two grid items this layout has always placed — beside the heading, and
+   full width under it. It becomes a real box only on a wide card, where the
+   copy wraps around the photo instead. */
+.hero__about-body {
+  display: contents;
+}
+
 .hero__about-copy {
   grid-column: 1 / -1;
   grid-row: 3;
@@ -159,17 +167,39 @@
     grid-row: 2;
   }
 
-  .hero__portrait {
-    grid-column: 1;
-    grid-row: 3; /* reset the mobile row span */
-    width: 150px;
-    /* Nudge down so the photo's top lines up with the copy's first line
-       (which sits ~0.3em below its box top due to line-height leading). */
-    margin-top: 0.3em;
+  /* The photo and the copy share one cell so the text can wrap *around* the
+     photo: past its bottom edge the lines run the full width of the card
+     rather than staying in a ~125px column beside it for the whole paragraph.
+     A grid item cannot float, hence the wrapper — and `flow-root` so the card
+     still contains the float if the copy ever ends up shorter than the photo. */
+  .hero__about-body {
+    display: flow-root;
+    grid-column: 1 / -1;
+    grid-row: 3;
   }
 
-  .hero__about-copy {
-    grid-column: 2;
-    grid-row: 3;
+  .hero__portrait {
+    float: left;
+    /* Sized to the text beside it rather than to a fixed width, so its two
+       edges land on the copy instead of near it: the top on the first line's
+       capitals, the bottom on the ninth line's baseline. That is nine whole
+       lines of copy from cap to baseline — eight line steps plus the height of
+       one capital — which is what `calc(8 * 1lh + 1cap)` says.
+
+       Both units read the live font, so this re-solves itself per theme: the
+       photo comes out ~123px wide on Hacker Bro and ~146px on Doom. Holding
+       one width instead would put the alignment right in one theme and wrong
+       in the other four, which is the trade being made here.
+
+       --body-cap-lift is the one part CSS cannot derive — the drop from the
+       line box's top to the cap top. See base.css. Without it the photo hangs
+       half a line's leading above the text it is meant to line up with.
+
+       The wrap then starts on the tenth line, which clears the float on its
+       own: the float's bottom is a baseline, and the next line box begins a
+       descender-and-half-leading below that. No rounding guard needed. */
+    height: calc(8 * 1lh + 1cap);
+    width: auto;
+    margin: var(--body-cap-lift) var(--space-4) 0 0;
   }
 }

@@ -36,6 +36,22 @@
   --text-2xl: clamp(1.9rem, 1.4rem + 2.6vw, 3rem);
   --text-3xl: clamp(2.6rem, 1.8rem + 4vw, 4.5rem);
 
+  /* How far a line of body text sits below the top of its line box, measured
+     to the cap rather than to the ascender — half the leading, plus the gap
+     between the ascender and the capital. It is a property of the body font,
+     so every theme sets its own; this is a mid-range fallback.
+
+     Used to optically align a block element with the first line of text beside
+     it. Nothing in CSS can derive it: `1lh` and `1cap` are units, but the
+     ascent is not. To re-measure after a font change, at that font's size:
+
+       const m = canvas.getContext('2d').measureText('H');   // font set first
+       lift = 0.8 + (m.fontBoundingBoxAscent - m.fontBoundingBoxDescent)
+                    / (2 * size) - m.actualBoundingBoxAscent / size;
+
+     where 0.8 is half of the body's 1.6 line-height. */
+  --body-cap-lift: 0.4em;
+
   /* Layout */
   --container: 1120px;
   --container-pad: clamp(1rem, 4vw, 2.5rem);

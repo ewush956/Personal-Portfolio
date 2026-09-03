@@ -17,6 +17,7 @@
               (each: scrim, image, fallback)
      Type   : --font-display --font-body --font-weight-display
               --heading-transform --heading-tracking --font-scale --display-scale
+              --body-cap-lift
      Card   : --card-bg --card-border --card-radius --card-shadow --card-pad
      Button : --btn-bg --btn-fg --btn-border --btn-radius --btn-shadow --btn-hover-bg
      Motion : --ease --dur

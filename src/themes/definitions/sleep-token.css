@@ -35,6 +35,9 @@
   --heading-tracking: 0.22em;
   --font-scale: 1.12;
   --display-scale: 0.94;
+  /* Body cap lift for EB Garamond: line-box top → cap top, in em.
+     Measured, not guessed — see base.css. */
+  --body-cap-lift: 0.496em;
 
   --card-bg: linear-gradient(165deg, rgba(18, 42, 31, 0.9), rgba(9, 22, 16, 0.92));
   --card-border: 1px solid rgba(201, 162, 75, 0.4);

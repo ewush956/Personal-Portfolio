@@ -35,6 +35,9 @@
   --heading-tracking: 0.12em;
   --font-scale: 0.95;
   --display-scale: 0.92;
+  /* Body cap lift for JetBrains Mono: line-box top → cap top, in em.
+     Measured, not guessed — see base.css. */
+  --body-cap-lift: 0.423em;
 
   --card-bg: rgba(4, 12, 6, 0.9);
   --card-border: 1px solid rgba(0, 255, 156, 0.35);

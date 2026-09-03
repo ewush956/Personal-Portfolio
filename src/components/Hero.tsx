@@ -41,18 +41,25 @@ export function Hero() {
             <div className="hero__about-grid">
               <span className="card__label hero__about-label">About Me</span>
               <h2 className="hero__about-heading">Hi there! Welcome to my portfolio.</h2>
-              <img
-                src={portrait}
-                alt="Portrait of Evan Wushke"
-                className="hero__portrait"
-              />
-              <p className="hero__about-copy">
-                I’ve had exposure to all ends of tech, but I’ve really taken a
-                liking to front-end development. I LOVE being creative, and working on the front
-                end lets me bring things to life. I’ll gladly continue to Google “How do I center a
-                div?”. I take pride in my work, so I always welcome feedback. We’re always
-                learning, so feel free to reach out so we can grow together!
-              </p>
+              {/* Wrapper so the copy can wrap *around* the portrait on a wide
+                  card instead of sitting in a column beside it. It is
+                  `display: contents` until then, so on a phone the photo and
+                  the copy stay the separate grid items the mobile layout
+                  places. See Hero.css. */}
+              <div className="hero__about-body">
+                <img
+                  src={portrait}
+                  alt="Portrait of Evan Wushke"
+                  className="hero__portrait"
+                />
+                <p className="hero__about-copy">
+                  I’ve had exposure to all ends of tech, but I’ve really taken a liking to
+                  front-end development. I LOVE being creative, and working on the front end lets
+                  me bring things to life. I’ll gladly continue to Google “How do I center a
+                  div?”. I take pride in my work, so I always welcome feedback. We’re always
+                  learning, so feel free to reach out so we can grow together!
+                </p>
+              </div>
             </div>
           </motion.article>
 

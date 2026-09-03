@@ -36,6 +36,9 @@
   --heading-tracking: -0.01em;
   --font-scale: 1.05;
   --display-scale: 1;
+  /* Body cap lift for Newsreader: line-box top → cap top, in em.
+     Measured, not guessed — see base.css. */
+  --body-cap-lift: 0.314em;
 
   --card-bg: #fffdf8;
   --card-border: 1px solid rgba(33, 29, 23, 0.16);

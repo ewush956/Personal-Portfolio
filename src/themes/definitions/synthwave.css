@@ -37,6 +37,9 @@
   --heading-tracking: normal;
   --font-scale: 1;
   --display-scale: 1;
+  /* Body cap lift for Comfortaa: line-box top → cap top, in em.
+     Measured, not guessed — see base.css. */
+  --body-cap-lift: 0.341em;
 
   --card-bg: linear-gradient(160deg, rgba(30, 14, 60, 0.82), rgba(12, 6, 30, 0.9));
   --card-border: 1px solid rgba(6, 238, 255, 0.35);
