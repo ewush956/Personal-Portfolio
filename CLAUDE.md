@@ -58,6 +58,7 @@ A node is a *course* if and only if the index note links to it. So:
    `CRYPTOGRAPHY` does with `Books/Cryptography.md`.
 3. Add it to `COURSE_TOPICS` in `scripts/topics.mjs`, most central topic first —
    the first entry colours the node, all of them are matched by the filter.
+   Topic no longer decides spiral position; the course's level does.
    Keep these **direct**: a course claims what it is about, not what it leans
    on. Machine Learning declares `math-stats`; Statistics does not claim
    `ml-ai` back, or every filter ends up showing every course.
@@ -91,15 +92,39 @@ the cost of a hot CPU on a phone, and it would break panning on touch: the graph
 is dense enough that most of the canvas is nodes, so a swipe that starts on one
 would move that node instead of the view.
 
-**Course nodes are pinned on a spiral.** `scripts/build-graph.mjs` walks the
-courses in primary-topic order (so the spiral passes through related subjects and
-their shared notes sit between them), gives each one an even share of `TURNS`
-revolutions, and grows the radius from `R_MIN` to `R_MAX` across them — then pins
-them there for the solve. The shipped coordinates *are* the spiral.
+**Course nodes are pinned on a spiral, ordered by course level.**
+`scripts/build-graph.mjs` walks the courses from 1000-level outward, gives each
+one an even share of `TURNS` revolutions, and grows the radius from `R_MIN` to
+`R_MAX` across them — then pins them there for the solve. The shipped
+coordinates *are* the spiral, and difficulty rises with the radius.
 
-`R_MIN` sets the spacing, since consecutive courses are roughly
-`R_MIN * 2*PI*TURNS/n` apart at the tight inner end — more turns buy more room
-there, which is why the two-turn form can start as close in as 260.
+`courseLevel()` reads the level off the vault path: the numbered folder
+(`MATH 4TH YEAR/MATH 4111/` → 4), falling back to the subject-year folder for
+the few courses filed without a number of their own (`COMP 4TH YEAR/ARTIFICIAL
+INTELLIGENCE.md` → 4), and null for notes that aren't coursework, which sort
+outermost. Ties break on the order `Computer Science.md` lists them, counting
+only links under a `## ` heading — the intro names a few courses out of sequence
+and must not move them.
+
+Level, not the year taken. The index groups by year and the two disagree in five
+places: STATISTICS is MATH 2234 sitting under First year, ALGORITHMS AND
+COMPLEXITY is a fourth-year course under Third. Ordering by heading put a
+4000-level course third along the spiral.
+
+This replaced an earlier primary-topic order, which kept related subjects
+adjacent so their shared notes sat between neighbouring hubs. Level order gives
+that up: a note shared by courses levels apart now spans the spiral, so the
+middle carries more long links. Reading the arrangement as a difficulty ramp is
+worth it.
+
+`R_MIN` is set by the **labels**, not by the discs. Consecutive courses are
+roughly `R_MIN * 2*PI*TURNS/n` apart at the tight inner end, and every course is
+named in the survey view with its name hanging directly under it, so the inner
+winding has to be long enough to park eight names side by side. At 300 it
+offered ~800px of circumference for ~1200px of text and the overflow had nowhere
+to go; 500 seats 25 of 32 labels on their first rung at 1440x900, against 17.
+More turns buy room at the inner end too, which is why the two-turn form can
+start closer in than a one-turn one.
 
 Three softer approaches are already ruled out. A `forceRadial` fixes a course's
 *distance* from the index but not its bearing, so the hubs still clump to one
@@ -108,6 +133,30 @@ course-to-index link (distance 95) pulls straight back in. A custom tangential
 force fixes bearing but not distance, which balances the graph only roughly. And
 a constant radius gives a clean ring, but every course ends up exactly as far
 from the index as every other, which reads as mechanical.
+
+**Labels sit as close to their node as they can, below by preference.**
+`src/graph/renderer.ts` builds every candidate slot — three depths (4/22/40px
+from the node's edge) x seven sideways offsets (0 to ±95px) x above and below —
+scores each by `drop + 1.5*|nudge| + 6 if above`, and takes the cheapest one
+that is free. It will not place a label over a course or index disc, and a label
+with no clear slot is simply not drawn: it returns as the zoom opens room, and
+the panel lists every course meanwhile.
+
+The weights are the whole design. Sideways costs more than down because an
+offset label has to be traced back along its leader, while a lower one is still
+in its node's column; above costs a flat 6 so below wins a tie but a *tight*
+slot above still beats a distant one below. Ordering the search by depth and
+then by side instead put names 60px off to one side with clear air sitting
+directly over the node — and the ±95 offsets only ever win when the alternative
+is not drawing the label at all. Measured in the browser at the survey zoom: 32
+of 32 named at 1920x1080 and at 1440x900, 28 at 1280x800; at 1920 only three
+labels move at all, and all three go straight up.
+
+Labels used to step outward along the ray from the index instead. That seated
+all 32 but put 23 of them on top of another disc at the survey zoom, and the
+varying bearings read as arbitrary. Two things are coupled to the change and
+should move with it: `R_MIN` above, and `courseFitZoom`'s `padding` (110 → 60),
+which reserved a band around the ring for labels that no longer go there.
 
 **Node radius lives in three places and must agree.** `scripts/build-graph.mjs`
 (the collision term in the solve), `src/graph/renderer.ts` (drawing, hit-testing

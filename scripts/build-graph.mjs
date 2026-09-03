@@ -273,6 +273,55 @@ for (const target of notes[indexIdx].links) {
   else if (hit !== indexIdx) courseIdx.add(hit);
 }
 
+/**
+ * Course level, which is what orders the spiral: 1200 is a first-level course,
+ * 4111 a fourth. Taken from the numbered folder the note sits in.
+ *
+ * The subject-year folder (`COMP 4TH YEAR/`) is the fallback for the few
+ * courses filed without a number of their own, and null for the notes that
+ * aren't coursework at all — those sort to the outer end.
+ *
+ * Level, not the year it was taken: the index note groups courses by year, and
+ * the two disagree often enough to matter. STATISTICS is a 2000-level course
+ * taken in first year; ALGORITHMS AND COMPLEXITY is 4000-level taken in third.
+ * The spiral is meant to read as difficulty rising with the radius, so the
+ * number on the course wins over the year it was slotted into.
+ */
+function courseLevel(rel) {
+  const numbered = rel.match(/\/[A-Z]{4} ?(\d)\d{3}\//);
+  if (numbered) return Number(numbered[1]);
+  const subjectYear = rel.match(/^[A-Z]{4} (\d)(?:ST|ND|RD|TH) YEAR\//);
+  return subjectYear ? Number(subjectYear[1]) : null;
+}
+
+/**
+ * Tiebreak within a level: the order the index note lists them.
+ *
+ * Only links under a `## ` heading count. The intro names a few courses out of
+ * sequence to make a point about them, and those mentions shouldn't decide
+ * where a course lands. A course appearing only in the intro sorts last within
+ * its level.
+ */
+const UNLISTED = Number.MAX_SAFE_INTEGER;
+const courseRank = new Map();
+{
+  let rank = 0;
+  let inSection = false;
+  for (const line of stripCode(notes[indexIdx].body).split('\n')) {
+    if (/^##\s/.test(line)) {
+      inSection = true;
+      continue;
+    }
+    if (!inSection) continue;
+    for (const target of extractLinks(line)) {
+      const hit = byName.get(target.toLowerCase());
+      if (hit !== undefined && courseIdx.has(hit) && !courseRank.has(hit)) {
+        courseRank.set(hit, rank++);
+      }
+    }
+  }
+}
+
 // Dedupe edges: the graph is undirected, so A→B and B→A are one link.
 const edgeSet = new Set();
 let unresolved = 0;
@@ -447,18 +496,34 @@ withSeededRandom(0x5eed, () => {
   // TURNS is how many times the spiral wraps. The radius is what does the work
   // on spacing — at TURNS turns, consecutive courses are R_MIN * 2*PI*TURNS/n
   // apart at the tight inner end, so R_MIN is what stops the middle crowding.
-  // Order is by primary topic, so the spiral walks through related subjects and
-  // their shared notes sit between them rather than crossing the middle.
+  //
+  // Order is by course level, so difficulty rises with the radius: the
+  // 1000-level courses sit innermost and each turn outward is a level up,
+  // ending on the notes that aren't coursework. The cost over the previous
+  // primary-topic order is that a note shared between courses levels apart now
+  // sits between two distant hubs instead of two neighbouring ones, so the
+  // middle carries more long links. Legibility of the arrangement is worth
+  // more than shortening those.
+  // Sorts the non-coursework notes to the outer end.
+  const UNLEVELLED = 99;
+
+  // R_MIN is set by the labels, not by the discs. Every course is named in the
+  // survey view and each name hangs directly under its node, so the inner
+  // winding has to be long enough to park eight names side by side: at 300 it
+  // offered ~800px of circumference for ~1200px of text, and the overflow
+  // stacked downward into a starburst of leader lines. 500 seats 25 of 32
+  // labels on their first rung at 1440x900, against 17 before.
   const TURNS = 2;
-  const R_MIN = 300;
-  const R_MAX = 1000;
+  const R_MIN = 500;
+  const R_MAX = 1100;
 
   const ringOrder = nodes
     .map((n, i) => [n, i])
     .filter(([n]) => n.kind === 'course')
     .sort(
-      ([a], [b]) =>
-        (TOPIC_IDS.indexOf(a.topics[0]) + 1 || 99) - (TOPIC_IDS.indexOf(b.topics[0]) + 1 || 99) ||
+      ([a, ai], [b, bi]) =>
+        (courseLevel(a.path) ?? UNLEVELLED) - (courseLevel(b.path) ?? UNLEVELLED) ||
+        (courseRank.get(ai) ?? UNLISTED) - (courseRank.get(bi) ?? UNLISTED) ||
         a.title.localeCompare(b.title),
     )
     .map(([, i]) => i);
