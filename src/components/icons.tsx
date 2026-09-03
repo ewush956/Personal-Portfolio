@@ -22,6 +22,30 @@ export function HomeIcon() {
   );
 }
 
+export function ArrowLeftIcon() {
+  // A vector rather than the "←" character. That glyph sits on the text
+  // baseline, so beside a tall cap height — EB Garamond on Sleep Token
+  // especially — it reads visibly low. An SVG is centred by the flex box and
+  // renders identically whatever font the theme picks.
+  return (
+    <svg {...stroke}>
+      <path d="M19 12H5" />
+      <path d="M11 6 5 12l6 6" />
+    </svg>
+  );
+}
+
+export function EducationIcon() {
+  // A graduation cap — the mortarboard plus its tassel.
+  return (
+    <svg {...stroke}>
+      <path d="M12 4 2.5 8.5 12 13l9.5-4.5L12 4Z" />
+      <path d="M6 10.6V15c0 1.5 2.7 2.8 6 2.8s6-1.3 6-2.8v-4.4" />
+      <path d="M21.5 8.5v5" />
+    </svg>
+  );
+}
+
 export function ProjectsIcon() {
   // A little computer/monitor — projects are things built at the machine.
   return (
@@ -73,6 +97,31 @@ export function ChevronIcon() {
   return (
     <svg {...stroke}>
       <path d="m14 6-6 6 6 6" />
+    </svg>
+  );
+}
+
+export function ChevronDownIcon() {
+  // Points down for "collapse"; the note sheet rotates it 180° to mean
+  // "expand", so one glyph covers both halves of the toggle.
+  return (
+    <svg {...stroke}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+export function GraphIcon() {
+  // A hub with three satellites — the shape the /graph route actually draws.
+  return (
+    <svg {...stroke}>
+      <circle cx="12" cy="12" r="2.6" />
+      <circle cx="5" cy="5.5" r="2.1" />
+      <circle cx="19.2" cy="7" r="2.1" />
+      <circle cx="16.5" cy="19" r="2.1" />
+      <path d="m6.6 7.1 3.7 3.2" />
+      <path d="m17.4 8.6-3.6 2.1" />
+      <path d="m15.4 16.6-2.2-2.3" />
     </svg>
   );
 }

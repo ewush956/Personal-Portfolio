@@ -1,0 +1,1 @@
+{"title":"Shared Memory","slug":"shared-memory","body":"Shared memory is a region of [[Memory]] that can be mapped into *more than one* [[Address Space|Address]] space.\nThis means that changes made to one process are immediately visible to other process"}

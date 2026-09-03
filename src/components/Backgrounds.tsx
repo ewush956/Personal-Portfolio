@@ -3,6 +3,7 @@ import './Backgrounds.css';
 /** DOM section id → background layer token. */
 const LAYERS = [
   { domId: 'top', varName: '--bg-hero' },
+  { domId: 'education', varName: '--bg-education' },
   { domId: 'projects', varName: '--bg-projects' },
   { domId: 'contact', varName: '--bg-contact' },
 ] as const;

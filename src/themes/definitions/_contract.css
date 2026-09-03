@@ -12,15 +12,30 @@
      Colors : --color-bg --color-bg-2 --color-surface --color-surface-2
               --color-text --color-heading --color-muted
               --color-accent --color-accent-2 --color-accent-contrast --color-border
-     Backds : --bg-scrim --bg-fallback (helpers) then the 3 section layers:
-              --bg-hero --bg-projects --bg-contact  (each: scrim, image, fallback)
+     Backds : --bg-scrim --bg-fallback (helpers) then the 4 section layers:
+              --bg-hero --bg-education --bg-projects --bg-contact
+              (each: scrim, image, fallback)
      Type   : --font-display --font-body --font-weight-display
               --heading-transform --heading-tracking --font-scale --display-scale
+              --body-cap-lift
      Card   : --card-bg --card-border --card-radius --card-shadow --card-pad
      Button : --btn-bg --btn-fg --btn-border --btn-radius --btn-shadow --btn-hover-bg
      Motion : --ease --dur
      Chrome : --header-bg --tag-bg --tag-fg
      Atmos  : --atmos (fixed texture) --atmos-size --atmos-opacity --vignette --heading-glow
+     Callout: --callout-note --callout-tip --callout-warn --callout-danger
+              (Obsidian callouts in the note reader; see graph/remarkCallout.ts)
+     Graph  : --graph-bg --graph-link --graph-link-highlight --graph-label
+              --graph-node-index --graph-node-course --graph-node-dim
+              --graph-panel-bg --graph-panel-border
+              --graph-topic-1 … --graph-topic-12  (see scripts/topics.mjs)
+
+   The graph view paints to a <canvas>, which cannot read CSS variables on its
+   own. The renderer resolves these through a hidden probe element — the same
+   trick getThemeAssetUrls() uses in ../preloadTheme.ts — so canvas colors stay
+   driven by this contract rather than hardcoded. scripts/render-preview.mjs
+   parses the same declarations out of the theme files at build time, so the
+   card preview and the live graph can never disagree about a palette.
 
    Section background images live in /public/images/backgrounds/ as
    <theme>-hero.jpg, <theme>-projects.jpg, <theme>-contact.jpg. Missing files

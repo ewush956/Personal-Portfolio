@@ -1,0 +1,1 @@
+{"title":"Do while loop","slug":"do-while-loop","body":"[[Sentinel]]\r\n\r\n```c++\r\nint x = 2;\r\n\r\ndo {\r\n\tcout << x;\r\n} while (x == 0); //Don't forget the semicolon.\r\n```\r\nWill execute the loop **at least** once"}

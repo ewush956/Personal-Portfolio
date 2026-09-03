@@ -9,6 +9,9 @@
   --bg-hero: var(--bg-scrim),
     url('/images/backgrounds/sleep-token-hero.jpg') center center / cover no-repeat,
     var(--bg-fallback);
+  --bg-education: var(--bg-scrim),
+    url('/images/backgrounds/sleep-token-contact.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
   --bg-projects: var(--bg-scrim),
     url('/images/backgrounds/sleep-token-projects.jpg') center center / cover no-repeat,
     var(--bg-fallback);
@@ -32,6 +35,9 @@
   --heading-tracking: 0.22em;
   --font-scale: 1.12;
   --display-scale: 0.94;
+  /* Body cap lift for EB Garamond: line-box top → cap top, in em.
+     Measured, not guessed — see base.css. */
+  --body-cap-lift: 0.496em;
 
   --card-bg: linear-gradient(165deg, rgba(18, 42, 31, 0.9), rgba(9, 22, 16, 0.92));
   --card-border: 1px solid rgba(201, 162, 75, 0.4);
@@ -58,4 +64,40 @@
   --atmos-size: auto;
   --atmos-opacity: 1;
   --vignette: radial-gradient(130% 100% at 50% 40%, transparent 45%, rgba(0, 0, 0, 0.75) 100%);
+}
+
+/* --- Graph view ------------------------------------------------------- */
+/* Muted jewel tones so the graph stays inside the theme's ritual register
+   instead of turning into a bag of highlighter pens on a forest floor. */
+[data-theme='sleep-token'] {
+  --graph-bg: #08130f;
+  --graph-link: rgba(143, 165, 150, 0.16);
+  --graph-link-highlight: #e6c877;
+  --graph-node-index: #fff8e6;
+  --graph-node-course: #b9c9bd;
+  --graph-node-dim: rgba(143, 165, 150, 0.26);
+  --graph-label: #e8e2d4;
+  --graph-panel-bg: rgba(14, 34, 25, 0.95);
+  --graph-panel-border: rgba(201, 162, 75, 0.4);
+
+  --graph-topic-1: #d8b25c;
+  --graph-topic-2: #b07d3a;
+  --graph-topic-3: #7fb894;
+  --graph-topic-4: #3f8f6f;
+  --graph-topic-5: #5b93c4;
+  --graph-topic-6: #9b8ec9;
+  --graph-topic-7: #c9738f;
+  --graph-topic-8: #c96b45;
+  --graph-topic-9: #9aae56;
+  --graph-topic-10: #cfc3a0;
+  --graph-topic-11: #4fa3a8;
+  --graph-topic-12: #a86ba0;
+}
+
+/* --- Note callouts ------------------------------------------------------ */
+[data-theme='sleep-token'] {
+  --callout-note: #7fa8c9;
+  --callout-tip: #7fb894;
+  --callout-warn: #d8b25c;
+  --callout-danger: #c9738f;
 }

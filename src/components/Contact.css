@@ -1,16 +1,46 @@
-.contact__inner {
-  max-width: 640px;
-}
+/* ==========================================================================
+   Contact — the form card spans the container, like the education billboard
+   and the project grid above it. `.contact__inner` used to cap it at 640px,
+   which left it ending well short of every other card's right edge: the one
+   section on the page that didn't line up with the column the rest is built
+   on. The cap is gone rather than raised, so the width is `.container`'s and
+   there is only one number to change.
+   ========================================================================== */
 
+/* The pitch, now the card's first row. No margin of its own — the grid's gap
+   is what spaces it from the fields, the same gap the fields use between
+   themselves. */
 .contact__lede {
+  /* The card widens; the prose does not. Same measure the education card's
+     blurb uses, for the same reason: a line of text 1000px long is unreadable
+     however much room there is for it. */
+  max-width: 56ch;
   color: var(--color-text);
-  margin-bottom: var(--space-6);
 }
 
+/* A grid rather than a stack, because the width has to be worth having. Name
+   and email are short values and sit side by side once there is room for two
+   real columns; the message and the button always span. Stacked, a 1000px-wide
+   input asking for a name reads as a mistake rather than as generosity. */
 .contact__form {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-3);
+}
+
+/* lg. Not 768: that is exactly where the nav rail appears and takes 216px off
+   the content, so splitting there would put the form into two columns at the
+   moment it gets narrower. */
+@media (min-width: 1024px) {
+  .contact__form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.contact__lede,
+.contact__form textarea,
+.contact__actions {
+  grid-column: 1 / -1;
 }
 
 .contact__form input,
@@ -36,20 +66,24 @@
   border-color: var(--color-accent);
 }
 
-.contact__form .btn {
-  align-self: flex-start;
-}
-
-.contact__details {
+/* Send, then the two reveals. Wraps rather than scrolls, and the revealed
+   value wraps with them — on a narrow card it lands on its own line under the
+   button that produced it, which is where it reads best anyway. */
+.contact__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  margin-top: var(--space-5);
 }
 
+/* The revealed detail is the link itself — mailto:/tel:, not text to copy out.
+   Underlined rather than left to the accent colour alone: it sits in a row of
+   buttons, where colour on its own reads as emphasis rather than as something
+   to click. */
 .contact__revealed {
   font-family: var(--font-display);
   font-size: var(--text-sm);
   color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

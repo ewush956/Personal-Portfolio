@@ -1,0 +1,1 @@
+{"title":"Structure chart","slug":"structure-chart","body":"What are the major tasks?\r\nIdentify the problem\r\n\r\nInput: (Number of Nickels, Dimes, Quarters, Loonies..)\r\nWhat is the expected result?\r\nIdentify the Heiarchy\r\nDraw an [[IPO Diagram]]\r\n\tInput Process output diagram\r\n\t\r\nDesign the [[Algorithm]]"}

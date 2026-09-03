@@ -1,0 +1,1 @@
+{"title":"Abstract Data Type","slug":"abstract-data-type","body":"An ADT is a data like pythons 'lists', where you know how to use it but not how it works.\r\n[[Stack]]\r\n\r\n***Components of an ADT***\r\n1) Set of values\r\n2) Set of operations deinfined on those values\r\n\r\n***Classes as an ADT***"}

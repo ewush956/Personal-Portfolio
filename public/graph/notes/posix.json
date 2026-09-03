@@ -1,0 +1,1 @@
+{"title":"POSIX","slug":"posix","body":"`sem_init`: Initial semaphore value\n`sem_wait`: tests semaphore, if it's 0, call blocks\n`sem_post`: when leaving crit section, and wakes it back up"}

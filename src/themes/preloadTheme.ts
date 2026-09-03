@@ -95,7 +95,7 @@ function getThemeAssetUrls(id: ThemeId): string[] {
 
   const cs = getComputedStyle(probe);
   const urls = new Set<string>();
-  for (const token of ['--bg-hero', '--bg-projects', '--bg-contact']) {
+  for (const token of ['--bg-hero', '--bg-education', '--bg-projects', '--bg-contact']) {
     const value = cs.getPropertyValue(token);
     for (const match of value.matchAll(/url\((['"]?)([^'")]+)\1\)/g)) {
       urls.add(match[2]);

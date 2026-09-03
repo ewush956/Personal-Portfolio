@@ -1,0 +1,1 @@
+{"title":"mermaid ref","slug":"mermaid-ref","body":"```mermaid \nflowchart TD\n\tA[I am here] --> B{choice?};\n\tB -- Yep ---> C[do this];\n\tB -- Nope ---> D[do that]; \n```"}

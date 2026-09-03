@@ -1,0 +1,1 @@
+{"title":"Motorola 68000","slug":"motorola-68000","body":"The MC68000 uses a [[VonNeumann]] architecture.\n[[CPU]]\n[[Memory]]\n[[Bus]]\n[[Clock]]\n\n**Chips on the 68000**\n[[6850 ACIA]]\n[[68901 MFP]]\n[[YM2149]]\n[[GLUE]]\n\n**System Calls**\nA [[System Call]] allows a program to request service from the [[Operating System]]'s [[Kernel]]"}

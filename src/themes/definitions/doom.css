@@ -9,6 +9,9 @@
   --bg-hero: var(--bg-scrim),
     url('/images/backgrounds/doom-hero.jpg') center center / cover no-repeat,
     var(--bg-fallback);
+  --bg-education: var(--bg-scrim),
+    url('/images/backgrounds/doom-education.jpg') center center / cover no-repeat,
+    var(--bg-fallback);
   --bg-projects: var(--bg-scrim),
     url('/images/backgrounds/doom-projects.jpg') center center / cover no-repeat,
     var(--bg-fallback);
@@ -32,6 +35,9 @@
   --heading-tracking: 0.02em;
   --font-scale: 1.15;
   --display-scale: 0.5;
+  /* Body cap lift for VT323: line-box top → cap top, in em.
+     Measured, not guessed — see base.css. */
+  --body-cap-lift: 0.538em;
 
   --card-bg: linear-gradient(170deg, rgba(42, 22, 16, 0.95), rgba(20, 10, 8, 0.96));
   --card-border: 2px solid #e8331b;
@@ -59,4 +65,41 @@
   --atmos-size: auto;
   --atmos-opacity: 0.7;
   --vignette: radial-gradient(120% 100% at 50% 50%, transparent 45%, rgba(0, 0, 0, 0.85) 100%);
+}
+
+/* --- Graph view ------------------------------------------------------- */
+/* Grimy id-software register: blood, rust and brass carry most of it, with
+   toxic green, corroded teal and a demonic violet for the separation that
+   red-on-red can't provide. */
+[data-theme='doom'] {
+  --graph-bg: #0a0605;
+  --graph-link: rgba(156, 111, 86, 0.18);
+  --graph-link-highlight: #ff9a1f;
+  --graph-node-index: #fff0e0;
+  --graph-node-course: #9c8878;
+  --graph-node-dim: rgba(156, 111, 86, 0.3);
+  --graph-label: #d8cabb;
+  --graph-panel-bg: rgba(28, 15, 11, 0.96);
+  --graph-panel-border: rgba(232, 51, 27, 0.5);
+
+  --graph-topic-1: #ff9a1f;
+  --graph-topic-2: #ffd23f;
+  --graph-topic-3: #c79a3d;
+  --graph-topic-4: #e0609a;
+  --graph-topic-5: #5f9fd4;
+  --graph-topic-6: #a86bd4;
+  --graph-topic-7: #e8331b;
+  --graph-topic-8: #ff6b3d;
+  --graph-topic-9: #4d9e9e;
+  --graph-topic-10: #d8cabb;
+  --graph-topic-11: #6f76d8;
+  --graph-topic-12: #8fae4a;
+}
+
+/* --- Note callouts ------------------------------------------------------ */
+[data-theme='doom'] {
+  --callout-note: #5f9fd4;
+  --callout-tip: #8fae4a;
+  --callout-warn: #ff9a1f;
+  --callout-danger: #e8331b;
 }

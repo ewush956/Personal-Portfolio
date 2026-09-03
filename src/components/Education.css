@@ -1,0 +1,179 @@
+/* Education — one wide billboard card, deliberately not a grid item, so it
+   reads as its own statement rather than a fourth project. */
+
+.edu-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 0;
+  overflow: hidden;
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+/* One rhythm for the whole card, on two levels: the school and the
+   concentration are a pair and sit --space-1 apart under the degree, and the
+   groups themselves — header, blurb, button — are always --space-5 apart.
+   Nothing is pushed to an edge, so no gap depends on how tall the render
+   beside it happens to be.
+
+   Centred for the same reason. The body is usually shorter than the preview
+   column, and any leftover height has to go somewhere: split evenly above and
+   below it reads as placement, whereas piling all of it under the button (or,
+   as it did before, into a single stretched gap above the button) reads as a
+   mistake. When the body is the taller of the two this has no effect. */
+.edu-card__body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-5);
+  padding: var(--card-pad);
+  min-width: 0;
+}
+
+/* The gap is the school-to-concentration one; the degree adds its own space
+   below on top of it, so the title is separated from the pair it heads rather
+   than reading as the first of three evenly stacked lines. */
+.edu-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.edu-card__degree {
+  /* --space-3 rather than --space-2 to hold the gap under the title where it
+     was, now that the line below it carries less leading of its own. */
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-display);
+  text-transform: var(--heading-transform);
+  letter-spacing: var(--heading-tracking);
+  /* --text-lg because that is what a card title is everywhere else on the
+     site: both hero cards and every project card. This was the one heading
+     at --text-xl, and against 1.05rem body copy it read as a section title
+     that had wandered into a card. Size is not what makes this card the
+     statement — being the full width with the graph beside it is.
+     (It also stops the wrap: --text-2xl ran to three lines once a theme
+     added uppercase and wide tracking, Cinzel on Sleep Token and Press Start
+     on Doom, and --text-xl still ran to two.) */
+  font-size: var(--text-lg);
+  color: var(--color-heading);
+  text-shadow: var(--heading-glow);
+}
+
+.edu-card__school {
+  margin: 0;
+  /* One step under the degree, as the concentration is one step under this.
+     Three sizes for three levels; the degree keeps the display face, the
+     tracking and the glow, so it still leads without being the biggest thing
+     in the section. */
+  font-size: var(--text-base);
+  /* Most of the space under this line was its own leading, not the gap: at the
+     body's 1.6 and this size that is ~0.4rem of air below the baseline against
+     a 0.25rem gap. It's a single line of a heading group, so it doesn't need
+     prose leading. */
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.edu-card__focus {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+/* Reads as part of the concentration line; the only thing it asks for is not
+   to be broken across two of them. */
+.edu-card__gpa {
+  white-space: nowrap;
+}
+
+.edu-card__blurb {
+  margin: 0;
+  max-width: 56ch;
+  color: var(--color-text);
+}
+
+/* The CTA is the point of the card, so it gets real size. The pitch moved
+   into the blurb, so the button is a single line again. */
+.edu-cta {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-5);
+  text-decoration: none;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border: var(--btn-border);
+  border-radius: var(--btn-radius);
+  box-shadow: var(--btn-shadow);
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.edu-cta:hover,
+.edu-cta:focus-visible {
+  background: var(--btn-hover-bg);
+  transform: translateY(-2px);
+}
+
+.edu-cta__label {
+  font-family: var(--font-display);
+  /* The padding is what gives this button its presence. At --text-lg it also
+     matched the degree above it, so the card had two headline-sized lines
+     competing. */
+  font-size: var(--text-base);
+  line-height: 1.15;
+  text-transform: var(--heading-transform);
+  letter-spacing: var(--heading-tracking);
+}
+
+/* Preview: a real render of the graph, regenerated on every vault sync. */
+.edu-card__preview {
+  position: relative;
+  display: block;
+  min-height: 260px;
+  overflow: hidden;
+}
+
+.edu-card__preview img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Bleed the render into the card instead of sitting on it as a photo. */
+  mask-image: linear-gradient(90deg, transparent, #000 22%);
+  transition: transform 0.8s var(--ease);
+}
+
+.edu-card:hover .edu-card__preview img {
+  transform: scale(1.04);
+}
+
+@media (max-width: 860px) {
+  .edu-card {
+    grid-template-columns: 1fr;
+  }
+
+  /* Preview leads on narrow screens, where a side-by-side would crush both. */
+  .edu-card__preview {
+    order: -1;
+    min-height: 200px;
+  }
+
+  .edu-card__preview img {
+    mask-image: linear-gradient(180deg, #000 55%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edu-cta,
+  .edu-card__preview img {
+    transition: none;
+  }
+
+  .edu-card:hover .edu-card__preview img {
+    transform: none;
+  }
+}

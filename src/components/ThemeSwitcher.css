@@ -4,10 +4,17 @@
   z-index: 40;
   padding-block: var(--space-3);
   background: var(--header-bg);
-  /* No backdrop-filter: blurring this sticky bar forces Chromium to repaint the
-     layer every frame, and during a fast scroll up the compositor can't keep up
-     — the bar lags its top:0 layout position and visibly detaches from the top.
-     The --header-bg colors are opaque enough to read as a header on their own. */
+  /* Same blur as the nav rail (NavRail.css) so the two chrome surfaces read as
+     one system — most obvious on mobile, where the bottom bar and this bar are
+     on screen at once and only one of them frosted the page behind it.
+     This was previously left un-blurred: a blurred sticky bar makes Chromium
+     repaint the layer every frame, and on a fast scroll up the compositor could
+     lag the bar behind its top:0 position so it visibly detached from the top.
+     If that resurfaces, gate the blur to `@media (max-width: 767px)` rather
+     than dropping it — mobile is where the mismatch shows, and the bar is
+     fixed-height and short there. */
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
   border-bottom: 1px solid var(--color-border);
   transition:
     background 0.6s var(--ease),
@@ -207,7 +214,13 @@
 /* ---- Condensed state + its transitional layout ----------------------------
    `condensed` is the settled scrolled state; `expanding` reuses the same circle
    layout while the circles fade OUT on the way back up. They share the layout,
-   so only opacity differs between them. */
+   so only opacity differs between them.
+
+   `.themes__list--dots` is the same circles with no bar around them and no
+   state machine driving them — what `<ThemeChips dots>` renders into the
+   graph's top bar. It joins each selector below rather than restating the
+   look, so the swatch a reader learns to click on the portfolio is pixel-wise
+   the one waiting for them on /graph. */
 :is(.themes--condensed, .themes--expanding) {
   padding-block: var(--space-2);
 }
@@ -227,14 +240,24 @@
   pointer-events: none;
 }
 
-:is(.themes--condensed, .themes--expanding) .themes__list {
+:is(.themes--condensed, .themes--expanding) .themes__list,
+.themes__list--dots {
   margin-left: auto;
   justify-content: flex-end;
   /* Circles always fit, so drop the scroll clip — it was shaving the ring. */
   overflow: visible;
 }
 
-:is(.themes--condensed, .themes--expanding) .theme-chip {
+/* Standing on its own in a row of other controls, the group has to keep its
+   size rather than absorb the row's slack the way it does inside the bar. */
+.themes__list--dots {
+  flex: none;
+  margin-left: 0;
+  gap: var(--space-2);
+}
+
+:is(.themes--condensed, .themes--expanding) .theme-chip,
+.themes__list--dots .theme-chip {
   gap: 0;
   min-height: 0;
   padding: 0;
@@ -243,18 +266,21 @@
   border-color: transparent;
 }
 
-:is(.themes--condensed, .themes--expanding) .theme-chip__label {
+:is(.themes--condensed, .themes--expanding) .theme-chip__label,
+.themes__list--dots .theme-chip__label {
   max-width: 0;
   opacity: 0;
 }
 
-:is(.themes--condensed, .themes--expanding) .theme-chip__swatch {
+:is(.themes--condensed, .themes--expanding) .theme-chip__swatch,
+.themes__list--dots .theme-chip__swatch {
   width: 22px;
   height: 22px;
   box-shadow: 0 0 0 1px var(--color-border);
 }
 
-:is(.themes--condensed, .themes--expanding) .theme-chip--active .theme-chip__swatch {
+:is(.themes--condensed, .themes--expanding) .theme-chip--active .theme-chip__swatch,
+.themes__list--dots .theme-chip--active .theme-chip__swatch {
   box-shadow:
     0 0 0 2px var(--color-bg),
     0 0 0 4px var(--color-accent);

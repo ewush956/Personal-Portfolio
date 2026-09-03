@@ -1,0 +1,1 @@
+{"title":"Sound Cards","slug":"sound-cards","body":"The hardware that turns numbers into a signal a speaker can use. Two approaches, and the\ncourse sees both: a [[PSG]] synthesises tones directly from register settings, while a\n[[PCM]] path streams sampled data through a DAC (see [[DAC's and ADC's]]).\n\nThe Atari ST's is the [[YM2149]]."}

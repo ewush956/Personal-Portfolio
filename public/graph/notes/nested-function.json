@@ -1,0 +1,1 @@
+{"title":"Nested Function","slug":"nested-function","body":"```js\nfunction f(a) {\n\tconst g = function (a) {return 0.5 * a};\n\treturn a + g(a);\n}\n\n//or to reduce function id's you can do this\n\nlet foo = f(200, function(a) {return 0.5 * a});\n```\n\nthis uses an [[Anonymous Function]]"}
