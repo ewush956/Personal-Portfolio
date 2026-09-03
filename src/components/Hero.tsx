@@ -73,7 +73,7 @@ export function Hero() {
         </div>
 
         <motion.a className="hero__cta" href="#projects" {...stagger(4)}>
-          View Projects
+          See More
           <span className="hero__cta-arrow" aria-hidden="true">
             ↓
           </span>
