@@ -84,6 +84,44 @@ needed; don't loosen the pattern.
 
 ## Things that bite
 
+**The graph wears the site's shell, so the camera has to know about it.**
+`/graph` mounts the same `NavRail` the portfolio does and a header in the same
+frosted `--header-bg` surface. The rail sits *beside* the canvas — `.graph-page`
+is offset by `--rail-w` on desktop and by `--rail-h` above the phone's bottom
+bar — so it never reaches the renderer. The header does sit over the canvas, and
+because it is opaque rather than the gradient scrim it replaced, `panelInset()`
+measures it (a `ResizeObserver` on the bar) and hands it to the renderer as
+`inset.top`. `fit`, `focus`, `surveyFrame`, `courseFitZoom` and the label clamp
+all read it; miss one and courses get framed or labelled behind the bar.
+
+Two things follow from the rail. `--rail-h` in `base.css` is authoritative —
+`NavRail.css` pins the mobile bar to it rather than letting padding decide, so
+the graph can lay a fixed viewport out flush above it. And the renderer's
+`narrow` check reads `window.innerWidth`, not the canvas: every rule it lines up
+with is a CSS media query on the viewport, and with a 216px rail beside it the
+canvas is narrow while the page is still showing the desktop reading panel.
+
+The rail's collapsed state lives in `useRailCollapsed` (localStorage), shared
+across the full page load between `/` and `/graph`.
+
+**The phone frames by covering, and the sheet is the zoom control.**
+Desktop `surveyFrame` *contains* the course ring in the visible band
+(`courseFitZoom`, the smaller of the two axes). A phone's band is a wide strip —
+390x135 with the sheet at rest — so containing it let the short side decide and
+drew the whole degree at k=0.041, below `MIN_K`. `coverFrame` takes the *larger*
+axis instead: 4.1x closer at rest, clipped top and bottom.
+
+That one change also makes the sheet a zoom control, which is the point. Pull
+the sheet down and the band grows; once it is taller than it is wide the height
+takes over as the long side and the view keeps closing in on the open note —
+another 1.75x from rest to floor. Three things have to hold for it to work:
+`SHEET_SHUT` in `layout.ts` is both the drag floor and the bottom inset of a
+*shut* sheet (collapsing deliberately keeps the resting height, so the camera
+cannot read that as what the sheet occupies); `NotePanel` reports the live drag
+height through `onDragHeight`, separate from `onHeight`'s resting one; and
+`GraphPage` throttles that to `DRAG_FRAME_MS` because every camera move
+repaints the cached scene — 13.7k links, on the thread dragging the sheet.
+
 **Nothing simulates at runtime.** The layout is solved once, at build time, and
 the shipped coordinates in `graph.json` are final — there is no worker and no
 d3-force in the bundle. Nodes cannot be dragged; the camera is the only thing
@@ -155,8 +193,9 @@ labels move at all, and all three go straight up.
 Labels used to step outward along the ray from the index instead. That seated
 all 32 but put 23 of them on top of another disc at the survey zoom, and the
 varying bearings read as arbitrary. Two things are coupled to the change and
-should move with it: `R_MIN` above, and `courseFitZoom`'s `padding` (110 → 60),
-which reserved a band around the ring for labels that no longer go there.
+should move with it: `R_MIN` above, and `courseFitZoom`'s `padding` (110 → 60,
+then 46 once the shell's header took a slice off the top of the band), which
+reserved a band around the ring for labels that no longer go there.
 
 **Node radius lives in three places and must agree.** `scripts/build-graph.mjs`
 (the collision term in the solve), `src/graph/renderer.ts` (drawing, hit-testing

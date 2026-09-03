@@ -21,6 +21,19 @@ import type { Adjacency, GraphData, GraphNode, GraphPalette } from './types';
  */
 export type LabelMode = 'auto' | 'courses' | 'none';
 
+/**
+ * Chrome covering the canvas, in screen pixels from each edge.
+ *
+ * There is no `left`: the nav rail is outside the canvas element rather than
+ * over it, so the rail is already gone from `this.width` by the time the
+ * renderer measures anything. Everything here genuinely overlaps the drawing.
+ */
+export interface Inset {
+  top: number;
+  right: number;
+  bottom: number;
+}
+
 export interface RendererCallbacks {
   onHover(node: GraphNode | null): void;
   onSelect(node: GraphNode): void;
@@ -33,14 +46,29 @@ export interface RendererCallbacks {
    you lean in or open "Start here", notes once you're properly close. */
 const LABEL_ZOOM_COURSE = 1.6;
 const LABEL_ZOOM_NOTE = 4.5;
-/** Below this canvas width the layout is treated as a phone. Matches the
-    breakpoint GraphPage uses for the note sheet. */
+/** At or below this VIEWPORT width the layout is treated as a phone. Matches
+    the `max-width: 720px` blocks in GraphPage.css and NotePanel.css, which is
+    why it reads the window rather than the canvas: with the nav rail beside it
+    the canvas is up to 216px narrower than the viewport, so measuring the
+    canvas put the renderer on the phone path — a plain `fit()` that ignores the
+    right inset — while the CSS was still showing the desktop reading panel, and
+    the graph framed itself behind it. */
 const NARROW = 720;
 
-/** How far the survey view sits below centre, as a share of viewport height.
-    Bounded by the lowest course label, not by the nodes: at 0.065 the bottom
-    row runs within ~20px of the edge on a 1280x800, which reads as clipped. */
-const SURVEY_DROP = 0.055;
+/** How far the survey view sits below the centre of the visible band, as a
+    share of that band's height. Bounded below by the lowest course label, not
+    by the nodes: at 0.065 the bottom row ran within ~20px of the edge on a
+    1280x800, which reads as clipped.
+
+    Cut from 0.055 when the shell's header arrived. Two things pushed the frame
+    down at once: the band now starts at the bar's lower edge rather than the
+    top of the screen, so centring in it is already ~half the bar's height
+    lower, and the drop is measured against a band that is the bar shorter. The
+    reason for any drop at all is unchanged — the note clusters hang upward off
+    the spiral, so centring on the index alone leaves a band of empty canvas
+    underneath — but the bar now does part of that work by taking the space off
+    the top. */
+const SURVEY_DROP = 0.02;
 const MIN_K = 0.08;
 const MAX_K = 12;
 
@@ -64,16 +92,27 @@ export class GraphRenderer {
    * Whether the index note has been opened. The "Start here" wording is an
    * invitation, and an invitation that has been taken has done its job — from
    * then on the node names itself, so the label matches the note the reader
-   * just read. It does not go back: reverting to "Start here" the moment they
-   * open something else would make the biggest label on the canvas flicker
-   * between two words as they browse.
+   * just read.
+   *
+   * Opening some *other* note does not bring the invitation back: that would
+   * make the biggest label on the canvas flicker between two words as they
+   * browse. Only clearing the selection outright does — closing the reading
+   * panel puts the page back to the view it was landed on, and on that view
+   * the invitation is the whole point of the node.
    */
   private indexOpened = false;
   /**
-   * Chrome covering the canvas — the reading panel. Labels are kept inside what
-   * this leaves, so none is drawn off the edge or behind the panel.
+   * Chrome covering the canvas — the reading panel on the right, the phone's
+   * sheet at the bottom, and the shell's top bar. Labels are kept inside what
+   * this leaves, so none is drawn off the edge or behind the chrome.
+   *
+   * `top` exists because the bar over the graph is now the site's own frosted
+   * header rather than the gradient scrim it replaced. A scrim only dimmed what
+   * passed under it, so the camera could ignore it; an opaque bar hides it, and
+   * a course whose name is behind the bar is a course the survey view doesn't
+   * name at all.
    */
-  private viewInset: { right: number; bottom: number } = { right: 0, bottom: 0 };
+  private viewInset: Inset = { top: 0, right: 0, bottom: 0 };
 
   /** Topic ids currently shown. null means "no filter applied". */
   private topicFilter: Set<string> | null = null;
@@ -188,7 +227,7 @@ export class GraphRenderer {
   // ------------------------------------------------------------------ camera
 
   /** Frame the graph, ignoring the outermost 0.5% so orphans can't shrink it. */
-  fit(padding = 60, inset: { right?: number; bottom?: number } = {}) {
+  fit(padding = 60, inset: Partial<Inset> = {}) {
     const xs = this.data.nodes.map((n) => n.x).sort((a, b) => a - b);
     const ys = this.data.nodes.map((n) => n.y).sort((a, b) => a - b);
     const q = (arr: number[], p: number) => arr[Math.floor((arr.length - 1) * p)];
@@ -200,8 +239,9 @@ export class GraphRenderer {
     // Frame into what the chrome leaves, not the whole canvas. On a phone the
     // reading sheet owns the bottom ~62%, so without this the graph is centred
     // behind it and only its top edge is ever visible.
+    const top = inset.top ?? 0;
     const w = this.width - (inset.right ?? 0);
-    const h = this.height - (inset.bottom ?? 0);
+    const h = this.height - top - (inset.bottom ?? 0);
 
     this.k = Math.min(
       (w - padding * 2) / Math.max(maxX - minX, 1),
@@ -209,7 +249,7 @@ export class GraphRenderer {
     );
     this.fitK = this.k;
     this.tx = w / 2 - ((minX + maxX) / 2) * this.k;
-    this.ty = h / 2 - ((minY + maxY) / 2) * this.k;
+    this.ty = top + h / 2 - ((minY + maxY) / 2) * this.k;
     this.invalidate();
   }
 
@@ -220,12 +260,13 @@ export class GraphRenderer {
    * so the node lands in the middle of what's actually visible rather than
    * behind the panel.
    */
-  focus(node: GraphNode, k = 2.2, inset: { right?: number; bottom?: number } = {}) {
+  focus(node: GraphNode, k = 2.2, inset: Partial<Inset> = {}) {
     const right = inset.right ?? 0;
+    const top = inset.top ?? 0;
     const bottom = inset.bottom ?? 0;
     this.k = k;
     this.tx = (this.width - right) / 2 - node.x * k;
-    this.ty = (this.height - bottom) / 2 - node.y * k;
+    this.ty = top + (this.height - top - bottom) / 2 - node.y * k;
     this.invalidate();
   }
 
@@ -247,24 +288,57 @@ export class GraphRenderer {
    * at the cost of clipping the lowest notes, which are the least interesting
    * thing on screen.
    */
-  surveyFrame(inset: { right?: number; bottom?: number } = {}) {
-    // On a phone the note sheet takes ~62% of the screen, so fitting the
-    // courses into what's left would frame the whole degree into a 100px
-    // strip — past MIN_K and unreadable. A narrow screen gets the plain fit
-    // instead: the whole graph in the whole viewport, with the sheet sliding
-    // over it. Landing and "Start here" still share it, so the camera is just
-    // as still there as on the desktop.
-    if (this.width < NARROW) {
-      this.fit(24, { bottom: inset.bottom ?? 0 });
+  surveyFrame(inset: Partial<Inset> = {}) {
+    // A phone gets `coverFrame` on the index instead — see there. Landing and
+    // "Start here" still share it, so the camera is just as still there as on
+    // the desktop.
+    if (this.narrow) {
+      this.coverFrame(this.data.nodes[this.data.indexId], inset);
       return;
     }
 
     const k = this.courseFitZoom(inset);
     const idx = this.data.nodes[this.data.indexId];
+    const top = inset.top ?? 0;
+    const visH = this.height - top - (inset.bottom ?? 0);
     this.k = k;
     this.fitK = k;
     this.tx = (this.width - (inset.right ?? 0)) / 2 - idx.x * k;
-    this.ty = (this.height - (inset.bottom ?? 0)) / 2 - idx.y * k + this.height * SURVEY_DROP;
+    this.ty = top + visH / 2 - idx.y * k + visH * SURVEY_DROP;
+    this.invalidate();
+  }
+
+  /**
+   * The phone's framing: `node` centred in the visible band, with the course
+   * ring *covering* that band rather than fitting inside it.
+   *
+   * The band on a phone is a wide strip — 344x147 with the sheet at rest — and
+   * containing the ring in it means the short side decides, so the whole degree
+   * was drawn at k=0.046 in a 147px slot. That is below `MIN_K`, which is the
+   * renderer's own opinion of the smallest zoom worth drawing; the result was a
+   * blob rather than an overview. Covering uses the *long* side instead, which
+   * on that strip is 3.2x closer and clips the ring top and bottom — you are
+   * looking at the middle of something bigger, which is honest and legible
+   * where the blob was neither.
+   *
+   * It is also what makes the sheet a zoom control. The band grows as the sheet
+   * is pulled down, and once it is taller than it is wide the height takes over
+   * as the long side, so the view keeps closing in on `node` all the way to the
+   * collapsed sheet — roughly 2x from rest to floor. Making room and getting
+   * closer are the same gesture, which is the only reading of "drag down to see
+   * more" that does anything for a reader who has already chosen a node.
+   *
+   * No `SURVEY_DROP` here: that evens out a frame with empty canvas below it,
+   * and a strip this short has no room to give away.
+   */
+  coverFrame(node: GraphNode, inset: Partial<Inset> = {}) {
+    const k = this.courseCoverZoom(inset);
+    const top = inset.top ?? 0;
+    const visH = this.height - top - (inset.bottom ?? 0);
+    this.k = k;
+    this.fitK = k;
+    this.tx = (this.width - (inset.right ?? 0)) / 2 - node.x * k;
+    this.ty = top + visH / 2 - node.y * k;
     this.invalidate();
   }
 
@@ -275,9 +349,18 @@ export class GraphRenderer {
    * that re-flows the moment the panel appears is worse than one that always
    * sat where the panel will be.
    */
-  setViewInset(inset: { right?: number; bottom?: number }) {
-    this.viewInset = { right: inset.right ?? 0, bottom: inset.bottom ?? 0 };
+  setViewInset(inset: Partial<Inset>) {
+    this.viewInset = {
+      top: inset.top ?? 0,
+      right: inset.right ?? 0,
+      bottom: inset.bottom ?? 0,
+    };
     this.invalidate();
+  }
+
+  /** Whether the page is laid out as a phone. See `NARROW`. */
+  private get narrow() {
+    return window.innerWidth <= NARROW;
   }
 
   /** The zoom `fit()` chose — a viewport-independent baseline for camera moves. */
@@ -301,13 +384,31 @@ export class GraphRenderer {
    * `padding` has to clear the *labels*, not just the course discs. Every course
    * is named in this view, and a name is wider than the disc it belongs to.
    *
-   * 60, down from the 110 the outward labels needed: labels now hang straight
-   * down, so the band around the ring only has to hold half a name either side
-   * rather than a whole one stepped out along the ray. The looser fit is worth
-   * having — it spreads the courses further apart on screen, which is what
-   * gives their labels room to sit tight under them.
+   * 46, down from the 110 the outward labels needed and then from 60: labels
+   * hang straight down, so the band around the ring only has to hold half a
+   * name either side rather than a whole one stepped out along the ray. The
+   * looser fit is still worth having — it spreads the courses further apart on
+   * screen, which is what gives their labels room to sit tight under them — but
+   * with the header taking a slice off the top of the band, 60 left the whole
+   * arrangement reading smaller than the space it had.
    */
-  courseFitZoom(inset: { right?: number; bottom?: number } = {}, padding = 60) {
+  courseFitZoom(inset: Partial<Inset> = {}, padding = 46) {
+    return this.courseZoom(inset, padding, Math.min);
+  }
+
+  /** `courseFitZoom`'s twin, taking the larger of the two axes so the ring
+      covers the visible band instead of fitting inside it. See `coverFrame`. */
+  private courseCoverZoom(inset: Partial<Inset> = {}, padding = 24) {
+    return this.courseZoom(inset, padding, Math.max);
+  }
+
+  /** The course ring's extent against the visible band, resolved on whichever
+      axis `pick` chooses. */
+  private courseZoom(
+    inset: Partial<Inset>,
+    padding: number,
+    pick: (a: number, b: number) => number,
+  ) {
     const idx = this.data.nodes[this.data.indexId];
     let dx = 0;
     let dy = 0;
@@ -318,8 +419,8 @@ export class GraphRenderer {
     }
     if (dx === 0 || dy === 0) return this.fitK;
     const w = Math.max(this.width - (inset.right ?? 0) - padding * 2, 1);
-    const h = Math.max(this.height - (inset.bottom ?? 0) - padding * 2, 1);
-    return Math.max(MIN_K, Math.min(MAX_K, Math.min(w / (dx * 2), h / (dy * 2))));
+    const h = Math.max(this.height - (inset.top ?? 0) - (inset.bottom ?? 0) - padding * 2, 1);
+    return Math.max(MIN_K, Math.min(MAX_K, pick(w / (dx * 2), h / (dy * 2))));
   }
 
   private toWorld(sx: number, sy: number) {
@@ -516,8 +617,12 @@ export class GraphRenderer {
     if (node === this.selected) return;
     this.selected = node;
     // Set here rather than in the click handler so a cold load of the index's
-    // own URL counts too — that reader has the note open just the same.
+    // own URL counts too — that reader has the note open just the same. And
+    // cleared when the selection goes: nothing is selected only on the landing
+    // view and after a reset, which are the same view, and the one the
+    // invitation belongs to.
     if (node?.kind === 'index') this.indexOpened = true;
+    else if (!node) this.indexOpened = false;
     this.recomputeHighlight();
   }
 
@@ -804,6 +909,10 @@ export class GraphRenderer {
     /** The part of the canvas the reader can actually see, and its margin. */
     const visW = this.width - this.viewInset.right;
     const visH = this.height - this.viewInset.bottom;
+    /* The top bar's lower edge. Unlike `visW`/`visH` this is a floor rather
+       than a ceiling, so it is carried separately instead of folded into a
+       height. */
+    const visT = this.viewInset.top;
     const EDGE = 6;
 
     /* Every label hangs straight down from the node it names — same x, further
@@ -874,7 +983,7 @@ export class GraphRenderer {
       // A phone navigates through the pages, so there the node is just labelled
       // for what it is — and at a size that doesn't span the screen. Once the
       // invitation has been taken it reads as "Index" everywhere.
-      const phone = this.width < NARROW;
+      const phone = this.narrow;
       const text = isIndex ? (phone || this.indexOpened ? 'Index' : 'Start here') : n.title;
       if (isIndex) {
         size = phone ? 15 : 21;
@@ -949,9 +1058,9 @@ export class GraphRenderer {
         // leader line still ties it to its node, so a label that had to move is
         // merely offset, not lost.
         const halfW = w / 2 + padX;
-        if (halfW * 2 > visW - EDGE * 2 || size + padY * 2 > visH - EDGE * 2) continue;
+        if (halfW * 2 > visW - EDGE * 2 || size + padY * 2 > visH - visT - EDGE * 2) continue;
         cx = Math.min(Math.max(cx, EDGE + halfW), visW - EDGE - halfW);
-        cy = Math.min(Math.max(cy, EDGE + padY), visH - EDGE - size - padY);
+        cy = Math.min(Math.max(cy, visT + EDGE + padY), visH - EDGE - size - padY);
 
         const b: Box = { x0: cx - halfW, y0: cy - padY, x1: cx + halfW, y1: cy + size + padY };
         if (force || (!hits(b) && !coversHub(b))) {
@@ -1023,7 +1132,7 @@ export class GraphRenderer {
     // over most of the height. Even the index's own label goes — navigation
     // there runs through the pages rather than the canvas, so the graph is an
     // overview to orient by, not a menu to aim at.
-    if (this.width < NARROW) {
+    if (this.narrow) {
       if (this.selected && visible(this.selected)) label(this.selected, 14, true);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       return;

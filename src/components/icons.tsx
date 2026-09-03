@@ -110,3 +110,18 @@ export function ChevronDownIcon() {
     </svg>
   );
 }
+
+export function GraphIcon() {
+  // A hub with three satellites — the shape the /graph route actually draws.
+  return (
+    <svg {...stroke}>
+      <circle cx="12" cy="12" r="2.6" />
+      <circle cx="5" cy="5.5" r="2.1" />
+      <circle cx="19.2" cy="7" r="2.1" />
+      <circle cx="16.5" cy="19" r="2.1" />
+      <path d="m6.6 7.1 3.7 3.2" />
+      <path d="m17.4 8.6-3.6 2.1" />
+      <path d="m15.4 16.6-2.2-2.3" />
+    </svg>
+  );
+}

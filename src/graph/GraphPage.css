@@ -1,8 +1,18 @@
-/* Graph view — a full-viewport canvas with floating chrome over it. */
+/* Graph view — a canvas filling whatever the site's shell leaves, with the
+   graph's own chrome floating over it.
+
+   The shell is the portfolio's: the nav rail down the left (a bottom bar on a
+   phone) and a header across the top. So the canvas is laid out *beside* the
+   rail rather than under it — the rail is opaque and permanent, and a canvas
+   running behind it would waste the space and put nodes somewhere no one can
+   click. The header is the one piece of chrome that does sit over the canvas,
+   and the renderer is told its height (`panelInset`) so nothing is drawn
+   underneath it. */
 
 .graph-page {
   position: fixed;
-  inset: 0;
+  /* Above the phone's bottom bar. Desktop swaps this for a left offset below. */
+  inset: 0 0 var(--rail-h) 0;
   background: var(--graph-bg);
   overflow: hidden;
 
@@ -39,39 +49,56 @@
   pointer-events: none;
 }
 
-/* The title sits over the densest part of the graph, and nodes drifting behind
-   the glyphs made it hard to read. Fade the canvas out underneath the bar
-   rather than boxing the text in — the scrim extends past the controls so the
-   transition is invisible. */
+/* The site's header, wearing the same surface as the nav rail beside it and the
+   theme bar on the portfolio: --header-bg, the same 7px blur, a hairline under
+   it. It replaced a gradient scrim that faded the canvas out under the title.
+   The scrim was the right answer while this bar was the graph's own furniture
+   floating over the drawing; now that it is the shell's header the two have to
+   read as one edge, and a frosted bar over a canvas is the version of that the
+   rail already established. Because it is opaque rather than a fade, the camera
+   has to know about it — see `panelInset` in GraphPage.tsx. */
 .graph-chrome--top {
   top: 0;
-  padding-bottom: var(--space-7);
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--graph-bg) 94%, transparent) 0%,
-    color-mix(in srgb, var(--graph-bg) 82%, transparent) 45%,
-    transparent 100%
-  );
+  padding-block: var(--space-3);
+  background: var(--header-bg);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  border-bottom: 1px solid var(--color-border);
+  transition:
+    background 0.6s var(--ease),
+    border-color 0.6s var(--ease);
 }
 
 .graph-chrome > * {
   pointer-events: auto;
 }
 
-/* min-width:0 so the title is the thing that gives when the bar is tight.
+/* Left-aligned, not centred. With the back button gone the bar has two items
+   rather than three, and a centred title between them read as floating; ranged
+   left it starts on the same axis the rail's own brand does.
+
+   min-width:0 so the title is the thing that gives when the bar is tight.
    Without it a flex item refuses to shrink past its min-content width, the bar
    overflows, and the controls get pushed out of the region they're supposed to
    sit in — which is what knocked the search field out of line with the legend
    once the note panel claimed half the screen. */
 .graph-title {
-  text-align: center;
+  text-align: left;
   min-width: 0;
   overflow: hidden;
 }
 
-.graph-chrome__tools,
-.graph-back {
+/* Nudged down 3px off dead centre. The title beside it is a display face over
+   a --text-sm second line, and a heading's ink sits high in its line box while
+   the smaller line carries a lot of leading below it — so the title's *visual*
+   mass is above the middle of the box the controls are centred in, and a
+   centred row read as sitting high against it. `position: relative` rather
+   than a margin so the bar's height is untouched: the note panel's header is
+   matched to it to the pixel (NotePanel.css). */
+.graph-chrome__tools {
   flex: none;
+  position: relative;
+  top: 3px;
 }
 
 .graph-title h1 {
@@ -80,9 +107,16 @@
   font-weight: var(--font-weight-display);
   text-transform: var(--heading-transform);
   letter-spacing: var(--heading-tracking);
-  font-size: var(--text-xl);
+  /* --text-lg, not --text-xl: in a bar sized by its 38px controls a 2rem
+     heading set the height on its own, and every pixel of bar is a pixel of
+     graph the camera has to give up. */
+  font-size: var(--text-lg);
+  line-height: 1.15;
   color: var(--color-heading);
   text-shadow: var(--heading-glow);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .graph-title p {
@@ -91,13 +125,11 @@
   color: var(--color-muted);
 }
 
-/* Back, search and Reset sat at three different heights with three different
-   borders. One shared control shape instead, so the row reads as one group. */
-/* These float over the graph, so they get the same solid backdrop the legend
-   and menu panels use — not --btn-bg, which is `transparent` on Sleep Token and
-   near-transparent on Hacker Bro. On a page-coloured section that's fine; over
-   a field of nodes it left the labels with nothing behind them. */
-.graph-back,
+/* Search and the menu trigger share one control shape, so the row reads as one
+   group. These sit on the header now rather than straight over the canvas, but
+   they keep the panel backdrop rather than --btn-bg, which is `transparent` on
+   Sleep Token and near-transparent on Hacker Bro — against a frosted bar with
+   a graph behind it that is still not enough to sit a label on. */
 .graph-btn,
 .graph-search__input {
   height: var(--control-h);
@@ -115,18 +147,27 @@
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
-.graph-back,
 .graph-btn {
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
 }
 
-.graph-back:hover,
 .graph-btn:hover,
 .graph-search__input:focus-visible {
   background: var(--btn-hover-bg);
   color: var(--btn-fg);
+}
+
+/* The swatches keep the shape they have in the portfolio's condensed bar — a
+   bare 22px circle — but a 22px square is a poor target for a control that is
+   now one of three things in this row. Giving them the row's own height leaves
+   the circle exactly as it looks and makes the button as tall as the search
+   field beside it, which is both a real hit area and what lines the three
+   groups up on one baseline. Only the height: widening them too would push the
+   row past a 320px screen. */
+.graph-chrome__tools .theme-chip {
+  min-height: var(--control-h);
 }
 
 /* --- readout ------------------------------------------------------------ */
@@ -328,21 +369,28 @@
 
   .graph-chrome--top {
     gap: var(--space-2);
-    padding: var(--space-3);
-    /* Nodes sit closer to the controls on a narrow screen, so the fade has to
-       reach further past them before it lets go. */
-    padding-bottom: var(--space-9);
+    padding: var(--space-2) var(--space-3);
   }
 
-  /* "Back" and "view" are the parts a small screen can do without; the arrow
-     and "Reset" still say what the control does. */
-  .graph-btn__long {
-    display: none;
-  }
-
-  .graph-back,
   .graph-btn {
     padding: 0 var(--space-3);
+  }
+
+  /* The bar is one line on a phone, so the tools own it: the swatches shrink
+     and tighten rather than pushing the search field off the end. */
+  .graph-chrome__tools {
+    flex: 1;
+    min-width: 0;
+    gap: var(--space-2);
+  }
+
+  .graph-chrome__tools .themes__list--dots {
+    gap: 6px;
+  }
+
+  .graph-chrome__tools .theme-chip__swatch {
+    width: 18px;
+    height: 18px;
   }
 
   .graph-search {
@@ -665,15 +713,21 @@
   }
 }
 
-/* The back arrow is an icon, so the button spaces it from the label rather
-   than relying on a non-breaking space. With the label hidden on narrow
-   screens the gap collapses on its own. */
-.graph-back {
-  gap: 6px;
+/* --- the shell ----------------------------------------------------------- */
+
+/* Desktop: the canvas starts where the rail ends. Transitioned to match the
+   rail's own width animation and the portfolio shell's padding — a canvas that
+   snapped to its new width while the rail slid would read as two unrelated
+   things. Each frame of it resizes the canvas and rebuilds the cached scene,
+   which is the price of the 300ms; it is paid once per click on Collapse. */
+@media (min-width: 768px) {
+  .graph-page {
+    inset: 0 0 0 var(--rail-w, 216px);
+    transition: left 0.3s var(--ease);
+  }
 }
 
-.graph-back svg {
-  width: 15px;
-  height: 15px;
-  flex: none;
+/* The route owns the viewport, so nothing behind it can scroll. */
+.graph-app {
+  overflow: hidden;
 }

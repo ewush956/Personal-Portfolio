@@ -5,6 +5,7 @@ import {
   ContactIcon,
   EducationIcon,
   GithubIcon,
+  GraphIcon,
   HomeIcon,
   LinkedinIcon,
   ProjectsIcon,
@@ -16,7 +17,8 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
-  /** Section id to match for scroll-spy (internal anchors only). */
+  /** What `active` has to equal for this item to be lit. On the portfolio this
+      is a scroll-spy section id; on /graph the page passes the route's own. */
   sectionId?: string;
   external?: boolean;
 }
@@ -26,6 +28,10 @@ const SECTION_ITEMS: NavItem[] = [
   { label: 'Education', href: '/#education', icon: <EducationIcon />, sectionId: 'education' },
   { label: 'Projects', href: '/#projects', icon: <ProjectsIcon />, sectionId: 'projects' },
   { label: 'Contact', href: '/#contact', icon: <ContactIcon />, sectionId: 'contact' },
+  /* A real route rather than an anchor, so it is a plain full navigation — the
+     same one Education's card already makes. It sits with the sections rather
+     than the external links because it is part of the site. */
+  { label: 'Graph', href: '/graph', icon: <GraphIcon />, sectionId: 'graph' },
 ];
 
 const EXTERNAL_ITEMS: NavItem[] = [
@@ -40,6 +46,7 @@ const EXTERNAL_ITEMS: NavItem[] = [
 ];
 
 interface NavRailProps {
+  /** The `sectionId` of the item to light: a scroll-spy section, or 'graph'. */
   active: string;
   collapsed: boolean;
   onToggle: () => void;
@@ -70,7 +77,7 @@ export function NavRail({ active, collapsed, onToggle }: NavRailProps) {
 
   return (
     <nav className="rail" data-collapsed={collapsed} aria-label="Primary">
-      <a className="rail__brand" href="#top" aria-label="Evan Wushke — home">
+      <a className="rail__brand" href="/#top" aria-label="Evan Wushke — home">
         <span className="rail__brand-mark">{BRAND_ICONS[themeId]}</span>
         <span className="rail__brand-full">Evan Wushke</span>
       </a>

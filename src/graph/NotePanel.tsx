@@ -10,6 +10,7 @@ import { remarkCallout } from './remarkCallout';
 import { useRef } from 'react';
 import { ArrowLeftIcon, ChevronDownIcon } from '../components/icons';
 import type { CSSProperties } from 'react';
+import { SHEET_SHUT } from './layout';
 import type { GraphData } from './types';
 import 'katex/dist/katex.min.css';
 import './NotePanel.css';
@@ -42,6 +43,12 @@ interface NotePanelProps {
       note you set it on, and so the graph can frame itself against it. */
   height: number | null;
   onHeight: (px: number | null) => void;
+  /** The sheet's height *while a finger is on the handle*, and null the moment
+      it lifts. Separate from `onHeight`, which reports only the resting height:
+      the graph follows the drag live so that pulling the sheet down reads as
+      opening the view rather than as revealing a still picture. The page
+      throttles what it does with this — see `handleDragHeight` there. */
+  onDragHeight: (px: number | null) => void;
 }
 
 /** Router state we attach when one note leads to another. */
@@ -60,6 +67,7 @@ export default function NotePanel({
   onCollapse,
   height,
   onHeight,
+  onDragHeight,
 }: NotePanelProps) {
   const location = useLocation();
   const from = (location.state as NoteNavState | null)?.fromTitle;
@@ -108,7 +116,7 @@ export default function NotePanel({
     // The floor is the collapsed header. `shut` is the last stretch above it:
     // let go inside that band and the sheet finishes the job and collapses,
     // rather than resting at a height that shows two lines of a paragraph.
-    const min = 64;
+    const min = SHEET_SHUT;
     return {
       min,
       shut: min + 56,
@@ -116,12 +124,16 @@ export default function NotePanel({
     };
   }, []);
 
-  const onHandleDown = useCallback((e: React.PointerEvent) => {
-    const h = sheetRef.current?.getBoundingClientRect().height ?? 0;
-    drag.current = { y: e.clientY, h, moved: 0 };
-    setDragHeight(h);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, []);
+  const onHandleDown = useCallback(
+    (e: React.PointerEvent) => {
+      const h = sheetRef.current?.getBoundingClientRect().height ?? 0;
+      drag.current = { y: e.clientY, h, moved: 0 };
+      setDragHeight(h);
+      onDragHeight(h);
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [onDragHeight],
+  );
 
   const onHandleMove = useCallback(
     (e: React.PointerEvent) => {
@@ -130,9 +142,11 @@ export default function NotePanel({
       const dy = d.y - e.clientY; // up is positive, and up means taller
       d.moved = Math.max(d.moved, Math.abs(dy));
       const { min, max } = limits();
-      setDragHeight(Math.max(min, Math.min(max, d.h + dy)));
+      const h = Math.max(min, Math.min(max, d.h + dy));
+      setDragHeight(h);
+      onDragHeight(h);
     },
-    [limits],
+    [limits, onDragHeight],
   );
 
   const onHandleUp = useCallback(
@@ -164,9 +178,22 @@ export default function NotePanel({
         }
       }
       setDragHeight(null);
+      // Hand the graph back to the resting height: `onHeight`/`collapse` above
+      // have already set it, and the page frames itself exactly once off that.
+      onDragHeight(null);
     },
-    [collapse, collapsed, limits, onHeight],
+    [collapse, collapsed, limits, onHeight, onDragHeight],
   );
+
+  /* The index reads as "Index" in its own header.
+     The vault file is called Computer Science.md, and that name is right
+     everywhere it is a name — the page's own <h1>, a search hit, the path line
+     directly below this. But at the top of the reading panel it sat under a
+     top bar already saying COMPUTER SCIENCE, and the canvas has called this
+     node "Index" since the first time it was opened. Only the heading changes;
+     nothing about the note or the graph does. */
+  const heading =
+    note && data.nodes[data.indexId]?.slug === slug ? 'Index' : (note?.title ?? null);
 
   // Title and alias → slug, built once. The build script already assigned the
   // slugs, so links resolve by lookup rather than by re-deriving them here.
@@ -252,7 +279,9 @@ export default function NotePanel({
 
       <header className="note-panel__head">
         <div className="note-panel__heading">
-          <h2>{note?.title ?? (error ? 'Not found' : 'Loading…')}</h2>
+          {/* Titled as well as written out: collapsed, the header clips a long
+              title to hold the top bar's height (NotePanel.css). */}
+          <h2 title={heading ?? undefined}>{heading ?? (error ? 'Not found' : 'Loading…')}</h2>
           {note && <p className="note-panel__path">{note.path}</p>}
         </div>
         <div className="note-panel__actions">

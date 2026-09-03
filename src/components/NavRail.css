@@ -6,6 +6,10 @@
   position: fixed;
   z-index: 50;
   inset: auto 0 0 0; /* pinned to bottom on mobile */
+  /* Pinned rather than derived from the padding: the graph route lays a fixed
+     viewport out directly above this bar, so the height has to be a number both
+     can name. --rail-h in base.css is that number. */
+  height: var(--rail-h);
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -37,7 +41,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
+  /* Eight targets on the bottom bar since Graph joined the sections, which is
+     368px of fixed width on a 375px phone. They share the row instead: 46px is
+     the size they want, and they give it up together when there isn't room. */
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 46px;
   height: 46px;
   border-radius: var(--btn-radius);
   color: var(--color-muted);
@@ -77,6 +86,7 @@
 @media (min-width: 768px) {
   .rail {
     inset: 0 auto 0 0;
+    height: auto;
     width: var(--rail-w, 216px);
     flex-direction: column;
     align-items: stretch;
@@ -143,6 +153,8 @@
   }
 
   .rail__link {
+    flex: none;
+    max-width: none;
     width: 100%;
     height: auto;
     justify-content: flex-start;

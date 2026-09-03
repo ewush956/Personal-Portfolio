@@ -214,7 +214,13 @@
 /* ---- Condensed state + its transitional layout ----------------------------
    `condensed` is the settled scrolled state; `expanding` reuses the same circle
    layout while the circles fade OUT on the way back up. They share the layout,
-   so only opacity differs between them. */
+   so only opacity differs between them.
+
+   `.themes__list--dots` is the same circles with no bar around them and no
+   state machine driving them — what `<ThemeChips dots>` renders into the
+   graph's top bar. It joins each selector below rather than restating the
+   look, so the swatch a reader learns to click on the portfolio is pixel-wise
+   the one waiting for them on /graph. */
 :is(.themes--condensed, .themes--expanding) {
   padding-block: var(--space-2);
 }
@@ -234,14 +240,24 @@
   pointer-events: none;
 }
 
-:is(.themes--condensed, .themes--expanding) .themes__list {
+:is(.themes--condensed, .themes--expanding) .themes__list,
+.themes__list--dots {
   margin-left: auto;
   justify-content: flex-end;
   /* Circles always fit, so drop the scroll clip — it was shaving the ring. */
   overflow: visible;
 }
 
-:is(.themes--condensed, .themes--expanding) .theme-chip {
+/* Standing on its own in a row of other controls, the group has to keep its
+   size rather than absorb the row's slack the way it does inside the bar. */
+.themes__list--dots {
+  flex: none;
+  margin-left: 0;
+  gap: var(--space-2);
+}
+
+:is(.themes--condensed, .themes--expanding) .theme-chip,
+.themes__list--dots .theme-chip {
   gap: 0;
   min-height: 0;
   padding: 0;
@@ -250,18 +266,21 @@
   border-color: transparent;
 }
 
-:is(.themes--condensed, .themes--expanding) .theme-chip__label {
+:is(.themes--condensed, .themes--expanding) .theme-chip__label,
+.themes__list--dots .theme-chip__label {
   max-width: 0;
   opacity: 0;
 }
 
-:is(.themes--condensed, .themes--expanding) .theme-chip__swatch {
+:is(.themes--condensed, .themes--expanding) .theme-chip__swatch,
+.themes__list--dots .theme-chip__swatch {
   width: 22px;
   height: 22px;
   box-shadow: 0 0 0 1px var(--color-border);
 }
 
-:is(.themes--condensed, .themes--expanding) .theme-chip--active .theme-chip__swatch {
+:is(.themes--condensed, .themes--expanding) .theme-chip--active .theme-chip__swatch,
+.themes__list--dots .theme-chip--active .theme-chip__swatch {
   box-shadow:
     0 0 0 2px var(--color-bg),
     0 0 0 4px var(--color-accent);

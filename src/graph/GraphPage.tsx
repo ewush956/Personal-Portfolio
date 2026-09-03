@@ -1,16 +1,18 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { RefObject } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../themes/useTheme';
+import { useRailCollapsed } from '../hooks/useRailCollapsed';
+import { NavRail } from '../components/NavRail';
+import { ThemeChips } from '../components/ThemeChips';
 import { GraphRenderer } from './renderer';
 import { readPalette } from './palette';
 import { GRAPH_STATS } from '../data/graphStats';
 import { GraphSearch } from './GraphSearch';
 import { GraphLegend } from './GraphLegend';
 import { GraphMenu } from './GraphMenu';
-import { ArrowLeftIcon } from '../components/icons';
 import type { LabelMode } from './renderer';
-import { SHEET_OPEN } from './layout';
+import { SHEET_OPEN, SHEET_SHUT } from './layout';
 import type { GraphData, GraphNode } from './types';
 import './GraphPage.css';
 
@@ -22,18 +24,56 @@ const NotePanel = lazy(() => import('./NotePanel'));
     the renderer, which decides what gets labelled. */
 const NARROW = 720;
 
+/** How often the graph re-frames while the sheet is being dragged, in ms. */
+const DRAG_FRAME_MS = 90;
+
 /**
- * The chrome covering the canvas when a note is open.
+ * The chrome covering the canvas.
  *
- * Used for the landing view too, where nothing is open yet: reserving the
+ * `top` is the shell's header, which is over the canvas on every view — the
+ * only part of the inset that is not about the reading panel. The rail is
+ * deliberately absent: it sits beside the canvas rather than over it, so it is
+ * already out of the measured width.
+ *
+ * The panel's own numbers are computed from the *viewport*, not the canvas,
+ * because that is what the CSS behind them uses — `min(560px, 92vw)` for the
+ * rail and `60vh` for the phone's sheet are both resolved against the window.
+ *
+ * Applied to the landing view too, where nothing is open yet: reserving the
  * panel's space up front is what lets the first click on "Start here" leave the
  * camera exactly where it already was.
  */
-function panelInset(fullscreen: boolean, sheet: number | null) {
+function panelInset(
+  fullscreen: boolean,
+  sheet: number | null,
+  top: number,
+  sheetShut: boolean,
+  reading: boolean,
+  legend: number,
+) {
   const wide = window.innerWidth > NARROW;
   return {
+    // Full screen hides the header along with the rest of the chrome.
+    top: fullscreen ? 0 : top,
     right: fullscreen ? 0 : wide ? Math.min(560, window.innerWidth * 0.92) : 0,
-    bottom: fullscreen ? 0 : wide ? 0 : (sheet ?? window.innerHeight * SHEET_OPEN),
+    bottom: fullscreen
+      ? 0
+      : wide
+        ? 0
+        : !reading
+          ? // Nothing open: the sheet is gone and the only thing between the
+            // graph and the bottom edge is the topic list, which on a phone is
+            // a full-width bar. Reserving the sheet's height anyway left the
+            // graph pinned in a strip under the header with a band of empty
+            // canvas between it and the list — on the one screen a reader
+            // reaches by deliberately closing the note to look at the graph.
+            legend
+          : // A shut sheet covers its header and nothing else, whatever height
+            // it rests at when open — and that height is deliberately kept, so
+            // it cannot be read as what the sheet currently occupies.
+            sheetShut
+            ? SHEET_SHUT
+            : (sheet ?? window.innerHeight * SHEET_OPEN),
   };
 }
 
@@ -115,6 +155,8 @@ export default function GraphPage() {
      because collapsing has to uncover the topic filter, which is the panel's
      sibling — CSS can't reach up out of the panel to reveal it. */
   const [collapsed, setCollapsed] = useState(false);
+  const collapsedRef = useRef(false);
+  collapsedRef.current = collapsed;
 
   /* The height the phone's sheet has been dragged to. Also held here: it
      outlives the note it was set on, and the graph frames itself against it,
@@ -126,7 +168,130 @@ export default function GraphPage() {
   const [sheetHeight, setSheetHeight] = useState<number | null>(null);
   const sheetRef = useRef<number | null>(null);
   sheetRef.current = sheetHeight;
-  const inset = useCallback((full: boolean) => panelInset(full, sheetRef.current), []);
+
+  /* The sheet's height mid-drag, which outranks the resting one while a finger
+     is down and is null the rest of the time. A ref, not state: the whole point
+     is that following the drag must not re-render this page sixty times a
+     second. */
+  const liveSheetRef = useRef<number | null>(null);
+
+  /* The shell's top bar is opaque, so the camera has to know how tall it is.
+     Measured rather than hard-coded: it holds the search field, the theme
+     swatches and the menu, and its height moves with --control-h, the theme's
+     type scale and whether the stats line is shown. Kept in a ref for the same
+     reason the sheet height is — `inset` must stay referentially stable or the
+     renderer is torn down and rebuilt on every resize. The state alongside it
+     exists only to re-run the effects that re-apply the inset. */
+  const topRef = useRef(0);
+  const [topBarH, setTopBarH] = useState(0);
+  const barRef = useRef<HTMLElement>(null);
+
+  /* What the topic list covers along the bottom, measured the same way and for
+     the same reason as the bar above. Zero while it is hidden — which on a
+     phone is whenever a note is open — because a hidden element covers nothing
+     and `getBoundingClientRect` says so. */
+  const legendRef = useRef(0);
+  const [legendH, setLegendH] = useState(0);
+  const legendBoxRef = useRef<HTMLElement>(null);
+
+  /* Whether a note is open, for the inset. A ref because `inset` has to stay
+     referentially stable — see the sheet height above. */
+  const readingRef = useRef(false);
+  readingRef.current = openNote !== null;
+
+  const inset = useCallback(
+    (full: boolean) =>
+      panelInset(
+        full,
+        liveSheetRef.current ?? sheetRef.current,
+        topRef.current,
+        // Mid-drag the sheet is at the height under the finger, shut or not.
+        collapsedRef.current && liveSheetRef.current === null,
+        readingRef.current,
+        legendRef.current,
+      ),
+    [],
+  );
+
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+    const measure = () => {
+      const h = bar.getBoundingClientRect().height;
+      topRef.current = h;
+      setTopBarH(h);
+    };
+    // Measured once up front as well: the renderer is created in a later effect
+    // and frames itself immediately, so the height has to be known by then
+    // rather than one observer callback afterwards.
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(bar);
+    return () => ro.disconnect();
+  }, []);
+
+  /* `data` in the deps because the list is not rendered until the graph has
+     loaded, so there is nothing to observe before then. */
+  useEffect(() => {
+    const box = legendBoxRef.current;
+    if (!box) return;
+    const measure = () => {
+      const r = box.getBoundingClientRect();
+      const canvas = canvasRef.current?.getBoundingClientRect();
+      // From the canvas's bottom edge to the list's top, so the gap the list
+      // is floated by counts as covered too — there is nothing usable in it.
+      const h = r.height && canvas ? Math.max(0, canvas.bottom - r.top) : 0;
+      legendRef.current = h;
+      setLegendH(h);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [data]);
+
+  /* Pulling the phone's sheet down closes the view in on whatever is open.
+     `coverFrame` does the work — the band gets taller, its long side becomes
+     the height, and the course ring is scaled to cover it — so all this has to
+     do is re-frame whenever the sheet has moved. Desktop is untouched: there is
+     no sheet there, and the rule that the reader's own camera is the one that
+     holds still stands.
+
+     Read through refs so the callback is stable, which is what lets the drag
+     handler below hold onto it without re-rendering anything. */
+  const selectedRef = useRef<GraphNode | null>(null);
+  const reframeSheet = useCallback(() => {
+    const renderer = rendererRef.current;
+    if (!renderer || window.innerWidth > NARROW) return;
+    renderer.setViewInset(inset(false));
+    const node = selectedRef.current;
+    if (node) renderer.coverFrame(node, inset(false));
+    else renderer.surveyFrame(inset(false));
+  }, [inset]);
+
+  /* Following the drag frame by frame would repaint the scene bitmap on every
+     one of them — 13.7k links, and the sheet is being dragged on the same
+     thread. So the camera steps rather than glides: about eleven updates a
+     second, which reads as the view opening with the sheet while leaving the
+     main thread most of its budget for the sheet itself. The exact frame comes
+     from the effect below when the finger lifts. */
+  const lastDragFrame = useRef(0);
+  const handleDragHeight = useCallback(
+    (px: number | null) => {
+      liveSheetRef.current = px;
+      if (px === null) return; // released — the resting height re-frames
+      const now = performance.now();
+      if (now - lastDragFrame.current < DRAG_FRAME_MS) return;
+      lastDragFrame.current = now;
+      reframeSheet();
+    },
+    [reframeSheet],
+  );
+
+  const [railCollapsed, toggleRail] = useRailCollapsed();
+  const railWidth: CSSProperties = {
+    ['--rail-w' as string]: railCollapsed ? '76px' : '216px',
+  };
   // Everything on once the topic list is known.
   useEffect(() => {
     if (data) setEnabledTopics(new Set(data.topics.map((t) => t.id)));
@@ -226,6 +391,11 @@ export default function GraphPage() {
   const handleReset = useCallback(() => {
     setFullscreen(false);
     setSheetHeight(null);
+    liveSheetRef.current = null;
+    // The frame below has to be computed against the chrome the page is going
+    // *to*, not the chrome it is leaving — and closing the note is what hands
+    // the phone's bottom band back to the topic list.
+    readingRef.current = false;
     // Ordering: the frame has to be computed against the height the sheet is
     // going back to, not the one it is leaving, so clear it first — `inset`
     // reads the ref, which the line above has already updated.
@@ -257,14 +427,31 @@ export default function GraphPage() {
   // Frame the open note, including on a cold load of /graph/<slug>. The panel
   // covers a chunk of the canvas, so tell the renderer where it is.
   useEffect(() => {
+    selectedRef.current = selected;
     rendererRef.current?.setSelected(selected);
   }, [selected]);
+
+  /* The sheet came to rest at a new height: land the camera exactly, whatever
+     the throttled drag left it on. `data` is in the deps because the renderer
+     does not exist until the graph has loaded — without it the first framing
+     after a cold load on a phone would run against a null ref. */
+  /* Re-frame when the phone's chrome moves — the sheet dragged, collapsed, or
+     closed and replaced by the topic list.
+
+     Deliberately NOT keyed on the selection. Opening a node must not move the
+     camera, here as anywhere: the reader's own view is the one that holds, and
+     a graph that recentres on every tap is exactly the lurch that rule exists
+     to stop. `data` is in the deps because the renderer does not exist until
+     the graph has loaded. */
+  useEffect(() => {
+    reframeSheet();
+  }, [sheetHeight, collapsed, legendH, data, reframeSheet]);
 
   // Keep the label bounds in step with the camera's. Both use the panel inset
   // whether or not a note is open, so nothing re-flows when the panel appears.
   useEffect(() => {
     rendererRef.current?.setViewInset(inset(fullscreen));
-  }, [fullscreen, data, sheetHeight, inset]);
+  }, [fullscreen, data, sheetHeight, topBarH, legendH, openNote, inset]);
 
   useEffect(() => {
     const selected = openNote;
@@ -285,16 +472,26 @@ export default function GraphPage() {
     rendererRef.current?.surveyFrame(inset(fullscreen));
   }, [openNote, fullscreen, inset]);
 
+  /* The rail wraps every branch below, the error page included: it is the way
+     off this route now that the back button is gone, and an error is exactly
+     when a visitor needs it. */
+  const shell = (children: React.ReactNode) => (
+    <div className="app graph-app" style={railWidth}>
+      <NavRail active="graph" collapsed={railCollapsed} onToggle={toggleRail} />
+      {children}
+    </div>
+  );
+
   if (error) {
-    return (
+    return shell(
       <div className="graph-page graph-page--error">
         <p>The graph could not be loaded ({error}).</p>
         <a href="/">Back to the site</a>
-      </div>
+      </div>,
     );
   }
 
-  return (
+  return shell(
     <div
       className={
         `graph-page${openNote ? ' graph-page--reading' : ''}` +
@@ -304,17 +501,18 @@ export default function GraphPage() {
     >
       <canvas ref={canvasRef} className="graph-canvas" />
 
-      <header className="graph-chrome graph-chrome--top">
-        <a className="graph-back" href="/#education" aria-label="Back to the site">
-          <ArrowLeftIcon />
-          <span className="graph-btn__long">Back</span>
-        </a>
+      {/* The site's header, not the graph's own. It carries the same surface as
+          the nav rail beside it and the theme bar on the portfolio, and the
+          themes it used to take a full-width bar to offer are here in the
+          condensed form the portfolio scrolls into. What replaced the back
+          button is the rail: "Back" pointed at one section of one page, while
+          the rail reaches every one of them. */}
+      <header className="graph-chrome graph-chrome--top" ref={barRef}>
         <div className="graph-title">
           <h1>Computer Science</h1>
           {data && (
             <p>
-              {data.nodes.length.toLocaleString()} notes ·{' '}
-              {data.edges.length / 2} links
+              {data.nodes.length.toLocaleString()} notes · {data.edges.length / 2} links
             </p>
           )}
         </div>
@@ -326,6 +524,7 @@ export default function GraphPage() {
               onMatches={handleMatches}
             />
           )}
+          <ThemeChips dots />
           <GraphMenu onReset={handleReset} labelMode={labelMode} onLabelMode={setLabelMode} />
         </div>
       </header>
@@ -349,6 +548,7 @@ export default function GraphPage() {
             onCollapse={setCollapsed}
             height={sheetHeight}
             onHeight={setSheetHeight}
+            onDragHeight={handleDragHeight}
           />
         </Suspense>
       )}
@@ -369,6 +569,8 @@ export default function GraphPage() {
             })
           }
           onAll={(on) => setEnabledTopics(on ? new Set(data.topics.map((t) => t.id)) : new Set())}
+          reading={openNote !== null}
+          boxRef={legendBoxRef}
         />
       )}
 
@@ -388,7 +590,7 @@ export default function GraphPage() {
           </ul>
         </nav>
       )}
-    </div>
+    </div>,
   );
 }
 

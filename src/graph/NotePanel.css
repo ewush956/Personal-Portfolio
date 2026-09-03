@@ -44,12 +44,20 @@
   display: none;
 }
 
+/* Metrically the same box as the graph's top bar (.graph-chrome--top): the same
+   --space-3 block padding, the same --text-lg heading over the same --text-sm
+   second line, the same hairline under it. That is not a coincidence to be
+   tidied away — the two surfaces meet at the panel's left edge and share a top
+   edge, and collapsed the panel *is* just this header sitting beside the bar.
+   At --text-xl over --space-4 it stood ~50px taller than the bar it was flush
+   against, which read as two unrelated pieces of chrome rather than one strip.
+   Change one of the two and change the other. */
 .note-panel__head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-5) var(--space-2);
+  padding: var(--space-3) var(--space-5);
   border-bottom: 1px solid var(--graph-panel-border);
 }
 
@@ -65,16 +73,31 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: var(--font-weight-display);
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   line-height: 1.15;
   color: var(--color-heading);
 }
 
 .note-panel__path {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   font-size: var(--text-sm);
   color: var(--color-muted);
   word-break: break-word;
+}
+
+/* Collapsed, the header has to hold the bar's height exactly — there is nothing
+   below it to absorb a second line, so a long title wrapping is the one thing
+   that can still break the shared edge. So it clips instead of wrapping, in
+   this state only: expanded, the panel is a reading surface and the full title
+   is worth a taller header. The `title` attribute carries the whole thing on
+   hover, and expanding puts it back. */
+.note-panel--collapsed .note-panel__head h2,
+.note-panel--collapsed .note-panel__path {
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .note-panel__actions {
@@ -307,7 +330,7 @@
 
 @media (max-width: 720px) {
   /* A bottom sheet on a phone: a 560px rail would cover the graph anyway.
-     70vh leaves a strip of graph above it to keep your bearings, without
+     60vh leaves a strip of graph above it to keep your bearings, without
      spending screen on a view you can have back whole by collapsing.
 
      Must equal SHEET_OPEN in layout.ts, which the drag snapping and the graph
@@ -320,7 +343,7 @@
        to a height of their own; until then this default stands. Read here
        rather than as an inline `height` so it can only ever apply to the
        sheet — the rail above must keep its top/bottom anchoring. */
-    height: var(--sheet-h, 70vh);
+    height: var(--sheet-h, 60vh);
     border-left: none;
     border-top: 1px solid var(--graph-panel-border);
     border-radius: var(--card-radius) var(--card-radius) 0 0;
@@ -347,10 +370,6 @@
   .note-panel--dragging .note-panel__body {
     display: block;
     overflow: hidden;
-  }
-
-  .note-panel__head h2 {
-    font-size: var(--text-lg);
   }
 
   .note-panel--collapsed .note-panel__path {

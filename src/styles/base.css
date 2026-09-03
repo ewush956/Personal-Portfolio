@@ -39,6 +39,11 @@
   /* Layout */
   --container: 1120px;
   --container-pad: clamp(1rem, 4vw, 2.5rem);
+  /* The nav rail's two forms. --rail-w is overridden per-page on `.app` from
+     the collapsed state; --rail-h is the mobile bottom bar's height, which
+     NavRail.css pins the bar to so nothing has to re-derive it from padding.
+     The graph route lays its fixed viewport out against both. */
+  --rail-h: 63px;
 
   /* Breakpoints (referenced in comments; CSS media queries use literals) */
   /* sm 480px · md 768px · lg 1024px · xl 1280px */
@@ -131,7 +136,10 @@ ul {
 .shell {
   position: relative;
   min-height: 100dvh;
-  padding-bottom: 68px; /* clear the mobile bottom bar */
+  /* Clear the mobile bottom bar, with a little air under the last section —
+     the graph route sits flush against --rail-h instead, because there the
+     chrome tiles rather than scrolls. */
+  padding-bottom: calc(var(--rail-h) + var(--space-1));
 }
 
 @media (min-width: 768px) {
