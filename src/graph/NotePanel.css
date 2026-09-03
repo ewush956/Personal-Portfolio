@@ -78,7 +78,7 @@
   color: var(--color-heading);
 }
 
-.note-panel__path {
+.note-panel__course {
   margin: 2px 0 0;
   font-size: var(--text-sm);
   color: var(--color-muted);
@@ -92,7 +92,7 @@
    is worth a taller header. The `title` attribute carries the whole thing on
    hover, and expanding puts it back. */
 .note-panel--collapsed .note-panel__head h2,
-.note-panel--collapsed .note-panel__path {
+.note-panel--collapsed .note-panel__course {
   overflow-wrap: normal;
   word-break: normal;
   white-space: nowrap;
@@ -372,7 +372,7 @@
     overflow: hidden;
   }
 
-  .note-panel--collapsed .note-panel__path {
+  .note-panel--collapsed .note-panel__course {
     display: none;
   }
 

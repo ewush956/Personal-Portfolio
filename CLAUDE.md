@@ -63,7 +63,10 @@ A node is a *course* if and only if the index note links to it. So:
    on. Machine Learning declares `math-stats`; Statistics does not claim
    `ml-ai` back, or every filter ends up showing every course.
 4. Add its folder to `FOLDER_TO_TOPIC` so untagged notes inside it still bucket.
-5. Sync. The script asserts one index node and reports the course count.
+5. If it isn't filed in a numbered folder of its own, put `code: COMP 4630` in
+   its frontmatter — otherwise the reading panel names it without its number.
+6. Sync. The script asserts one index node, reports the course count, and says
+   how many notes were attributed to a course by folder and how many by link.
 
 ### A new topic bucket
 
@@ -214,6 +217,53 @@ rendered as greyed-out dead links in the panel.
 top and prunes stale files. Deleting first opens a window where a dev server
 answers `/graph/graph.json` with `index.html` from the SPA fallback — a
 cacheable 200 of the wrong type that browsers hold onto long afterwards.
+
+**Every node knows its course, and the folder decides before the links do.**
+The line under the title in the reading panel used to be the vault path; it now
+reads `MATH 4199: Fourier and Complex Analysis`, the same string for the course
+note and for everything belonging to it. `scripts/build-graph.mjs` works out
+which course that is and ships it as `node.course` (a course node id) plus
+`node.code`; `src/graph/courseLabel.ts` only formats what it is handed, and adds
+the two cases with no course — the index says `Course List`, an unclaimed note
+names its folder.
+
+The filing wins wherever it says anything. A course owns a folder when it sits
+in its own numbered one (`MATH 4199/`) or beside a folder of its own name
+(`Leetcode.md` next to `Leetcode/`), and everything underneath is its own —
+840 of 948 notes. Nothing looser counts: `Books/` holds one course note and forty
+unrelated books, and the three COMP courses filed without numbers share
+`COMP 4TH YEAR/` with each other and 33 loose notes.
+
+For the ~75 notes left, the links decide, and the direction is the whole point —
+a course naming the note, not the note naming a course. Almost every note reaches
+several courses on the way out (`Neural Network` links to Machine Learning,
+Artificial Intelligence *and* Statistics) while being claimed by fewer.
+**`graph.json` cannot answer this**: its edges are deduped to `min,max` and
+course ids always sort below note ids, so every course-note pair looks identical
+by the time it ships. That is why the attribution runs in the build, off the
+vault, and not in the panel.
+
+Claims still overlap, so they are ranked, and counting mentions of the note alone
+does not separate them — AI names `Neural Network` three times, ML twice. The
+*neighbourhood* does: the winner is the course naming the most of what the note
+links to, which is the difference between mentioning a concept and being built
+out of it (ML names 54 of Neural Network's neighbours to AI's 30). A topic filter
+runs first and does the coarse work, dropping Calculus 1 and Linear Algebra from
+`Back Propagation` before any counting; when nothing matches the note's topic
+every claimant is ranked instead, which is what correctly leaves `Karnaugh Maps`
+with The New Turing Omnibus. Ties fall to the more direct mention, then to the
+lower course id, so nothing depends on map iteration order.
+
+**A course filed without a numbered folder needs `code:` in its frontmatter.**
+`courseCode()` reads the number off the path and that covers 26 of 32 courses;
+the rest have nowhere in the vault to put it, so `code: COMP 4630` at the top of
+`MACHINE LEARNING.md` supplies it. Note that this is *display only* — it is
+deliberately not fed to `courseLevel()`, which still reads the folder, so adding
+a code cannot silently re-solve the spiral. The two now disagree on the three
+courses that have one: Algorithms and Complexity is COMP 3614 and Artificial
+Intelligence is COMP 3625, both sitting in `COMP 4TH YEAR/` and therefore still
+placed at the fourth-year radius. Reconciling that means moving them on the
+spiral and re-shipping coordinates; it has not been done.
 
 **Slugs must stay order-independent.** Six pairs of notes collapse to the same
 base slug (`Cryptography`/`CRYPTOGRAPHY`, `Node JS`/`Node.js`). Collisions are

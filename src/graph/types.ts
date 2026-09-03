@@ -12,6 +12,16 @@ export interface GraphNode {
   topics: string[];
   year: number | null;
   degree: number;
+  /** A course's number, `MATH 4199` — from its folder, or from `code:` in the
+      note's frontmatter for the courses filed without a numbered folder. Null
+      for notes, for the index, and for the courses that have no number at all
+      (Leetcode, the reading ones). */
+  code: string | null;
+  /** The course this node belongs to, as a node id — what the reading panel
+      names under the title. A course is its own; the index has none, and nor do
+      the few notes no course draws on. Decided at build time, off the vault:
+      see the course-attribution section of `scripts/build-graph.mjs`. */
+  course: number | null;
   x: number;
   y: number;
 }

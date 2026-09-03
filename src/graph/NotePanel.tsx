@@ -12,6 +12,7 @@ import { ArrowLeftIcon, ChevronDownIcon } from '../components/icons';
 import type { CSSProperties } from 'react';
 import { SHEET_SHUT } from './layout';
 import type { GraphData } from './types';
+import { buildCourseLine } from './courseLabel';
 import 'katex/dist/katex.min.css';
 import './NotePanel.css';
 
@@ -195,6 +196,12 @@ export default function NotePanel({
   const heading =
     note && data.nodes[data.indexId]?.slug === slug ? 'Index' : (note?.title ?? null);
 
+  /* The line under the title names the note's course rather than its vault
+     path — see courseLabel.ts. One pass over the nodes per load, nothing per
+     note. */
+  const courseLine = useMemo(() => buildCourseLine(data), [data]);
+  const course = courseLine(slug);
+
   // Title and alias → slug, built once. The build script already assigned the
   // slugs, so links resolve by lookup rather than by re-deriving them here.
   const resolve = useMemo(() => {
@@ -282,7 +289,13 @@ export default function NotePanel({
           {/* Titled as well as written out: collapsed, the header clips a long
               title to hold the top bar's height (NotePanel.css). */}
           <h2 title={heading ?? undefined}>{heading ?? (error ? 'Not found' : 'Loading…')}</h2>
-          {note && <p className="note-panel__path">{note.path}</p>}
+          {/* The path is still worth having, just not worth a line: it rides
+              along on the tooltip. */}
+          {note && course && (
+            <p className="note-panel__course" title={note.path}>
+              {course}
+            </p>
+          )}
         </div>
         <div className="note-panel__actions">
           {/* Only rendered when this note was reached from another one, so it

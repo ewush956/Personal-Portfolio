@@ -228,7 +228,14 @@ for (const file of files) {
     ? parsed.data.aliases.filter((a) => typeof a === 'string')
     : [];
 
-  notes.push({ name, rel, tags, aliases, body, links: extractLinks(body) });
+  /* A course's number. Almost every course carries it in its folder path and
+     needs nothing here; this is the override for the handful filed without a
+     numbered folder of their own, where the vault has nowhere else to put it.
+     Add `code: COMP 4677` to the course note's frontmatter and it shows up in
+     the reading panel like every other course's does. */
+  const code = typeof parsed.data?.code === 'string' ? parsed.data.code.trim() : null;
+
+  notes.push({ name, rel, tags, aliases, code, body, links: extractLinks(body) });
 }
 
 console.log(`  ${skippedExcluded} notes excluded by name`);
@@ -432,10 +439,154 @@ const nodes = notes.map((n, i) => {
     topics: kind === 'index' ? [] : topics,
     year,
     degree: degree[i],
+    /* A course's number, for the line the reading panel puts under a title.
+       The numbered folder is the vault's own answer wherever it gives one;
+       `code:` in the frontmatter covers the courses filed without one. */
+    code: kind === 'course' ? (n.code ?? courseCode(n.rel)) : null,
+    /** The course this node belongs to, as a course node id. Filled in below. */
+    course: null,
     x: 0,
     y: 0,
   };
 });
+
+// --------------------------------------------------------------------------
+// Course attribution
+// --------------------------------------------------------------------------
+/*
+ * Which course each node belongs to, as a course node id — the reading panel
+ * shows it under the title instead of the vault path (`MATH 4199: Fourier and
+ * Complex Analysis`, not `MATH 4TH YEAR/MATH 4199/Fourier Series.md`).
+ *
+ * Two rules, in order. The filing is authoritative where it says anything: a
+ * course owns a folder when it sits in its own numbered one (`MATH 4199/`) or
+ * beside a folder of its own name (`Leetcode.md` next to `Leetcode/`), and
+ * everything under an owned folder is that course's. Nothing looser counts —
+ * `Books/` holds one course note and forty unrelated books, and the three
+ * fourth-year COMP courses filed without numbers share a folder with each other
+ * and with 33 loose notes, so neither folder speaks for a single course.
+ *
+ * That leaves ~75 notes, and for those the links decide. It has to be *this*
+ * direction — a course naming the note, not the note naming a course — because
+ * nearly every note reaches several courses on the way out (`Neural Network`
+ * links to Machine Learning, Artificial Intelligence and Statistics) while
+ * being claimed by far fewer. `graph.json` can't answer that: its edges are
+ * deduped to `min,max` and course ids always sort below note ids, so every
+ * course-note pair looks the same by the time it ships. This runs at build
+ * time, off the vault, where direction still exists.
+ *
+ * Claims still overlap — Machine Learning, Artificial Intelligence and The New
+ * Turing Omnibus all name `Neural Network` — so they are ranked, and counting
+ * mentions of the note alone is not enough to separate them (AI names it three
+ * times, ML twice). What separates them is the *neighbourhood*: the winner is
+ * the course that names the most of what this note links to, which is the
+ * difference between a course mentioning a concept and a course being built out
+ * of it. ML names 54 of Neural Network's neighbours against AI's 30. Ties fall
+ * to the more direct mention, then to the lower course id, so the result does
+ * not depend on map iteration order.
+ *
+ * A topic filter runs first, and does most of the coarse work: only courses
+ * sharing the note's topic bucket are ranked, which drops Calculus 1 and Linear
+ * Algebra from `Back Propagation` before any counting happens. If none match,
+ * every claimant is ranked instead — that is what leaves `Karnaugh Maps` with
+ * The New Turing Omnibus, correctly.
+ *
+ * Notes no course claims keep their folder's name, resolved in the panel.
+ */
+
+const dirOf = (p) => {
+  const i = p.lastIndexOf('/');
+  return i < 0 ? '' : p.slice(0, i);
+};
+const baseOf = (p) => p.slice(p.lastIndexOf('/') + 1).replace(/\.md$/i, '');
+
+const allDirs = new Set();
+for (const n of nodes) {
+  for (let d = dirOf(n.path); d; d = dirOf(d)) allDirs.add(d.toLowerCase());
+}
+
+/** Folder (lowercased) → the course node that owns it. */
+const ownedFolders = new Map();
+for (const n of nodes) {
+  if (n.kind !== 'course') continue;
+  const dir = dirOf(n.path);
+  // Ownership follows the *folder's* number, not the course's own `code:` — a
+  // course given its number in frontmatter has no folder to speak for.
+  if (courseCode(n.path)) {
+    ownedFolders.set(dir.toLowerCase(), n.id);
+  } else {
+    const sibling = dir ? `${dir}/${baseOf(n.path)}` : baseOf(n.path);
+    if (allDirs.has(sibling.toLowerCase())) ownedFolders.set(sibling.toLowerCase(), n.id);
+  }
+}
+
+/** Course node id → Map(node id → how often that course's note names it). */
+const mentions = new Map();
+for (const n of nodes) {
+  if (n.kind !== 'course') continue;
+  const counts = new Map();
+  for (const target of notes[n.id].links) {
+    const to = byName.get(target.toLowerCase());
+    if (to !== undefined && to !== n.id) counts.set(to, (counts.get(to) ?? 0) + 1);
+  }
+  mentions.set(n.id, counts);
+}
+
+const neighbours = nodes.map(() => []);
+for (const [a, b] of edgePairs) {
+  neighbours[a].push(b);
+  neighbours[b].push(a);
+}
+
+/** The course with the strongest claim on a note, or null if none names it. */
+function claimant(n) {
+  let cands = [];
+  for (const [cid, m] of mentions) if (m.has(n.id)) cands.push(cid);
+  if (!cands.length) return null;
+
+  const topical = cands.filter((cid) => nodes[cid].topics.includes(n.topic));
+  if (topical.length) cands = topical;
+
+  let best = null;
+  for (const cid of cands) {
+    const m = mentions.get(cid);
+    const around = neighbours[n.id].reduce((sum, x) => sum + (m.get(x) ?? 0), 0);
+    const direct = m.get(n.id) ?? 0;
+    if (!best || around > best.around || (around === best.around && direct > best.direct)) {
+      best = { cid, around, direct };
+    }
+  }
+  return best.cid;
+}
+
+const viaCourse = { folder: 0, link: 0, none: 0 };
+for (const n of nodes) {
+  if (n.kind !== 'note') {
+    // A course is its own; the index belongs to no course and says so itself.
+    n.course = n.kind === 'course' ? n.id : null;
+    continue;
+  }
+
+  // Deepest owning folder wins: COMP 4299's notes are Directed Reading's, not
+  // the fourth-year folder's.
+  let course = null;
+  for (let d = dirOf(n.path); d && course === null; d = dirOf(d)) {
+    course = ownedFolders.get(d.toLowerCase()) ?? null;
+  }
+  if (course !== null) viaCourse.folder++;
+  else {
+    course = claimant(n);
+    viaCourse[course === null ? 'none' : 'link']++;
+  }
+  n.course = course;
+}
+
+/** `MATH 4TH YEAR/MATH 4199/…` → `MATH 4199`, and null where no folder says. */
+function courseCode(rel) {
+  const dir = rel.slice(0, rel.lastIndexOf('/'));
+  const leaf = dir.slice(dir.lastIndexOf('/') + 1);
+  return /^[A-Z]{2,4} ?\d{4}$/.test(leaf) ? leaf : null;
+}
 
 function yearFromPath(rel) {
   const m = rel.match(/(COMP|MATH) (\d)(?:ST|ND|RD|TH) YEAR/);
@@ -655,6 +806,10 @@ console.log(`nodes            ${nodes.length}`);
 console.log(`edges            ${edgePairs.length} unique, from ${totalRefs} wikilink refs`);
 console.log(`index nodes      ${nodes.filter((n) => n.kind === 'index').length}`);
 console.log(`course nodes     ${courseCount}`);
+console.log(
+  `note -> course     ${viaCourse.folder} by folder, ${viaCourse.link} by link, ` +
+    `${viaCourse.none} unclaimed`,
+);
 console.log(`unresolved links ${unresolved} across ${unresolvedNames.size} distinct targets`);
 console.log(`graph.json       ${(graphBytes / 1024).toFixed(0)} KB`);
 console.log(`note files       ${notes.length}`);
