@@ -1,1 +1,1 @@
-{"title":"debugging","slug":"debugging","path":"COMP 1ST YEAR/COMP 1633/Problem Solving/debugging.md","tags":[],"body":"***Top Down approach:***\r\nTesting the [[main()]] function\r\n\r\n***Bottom up approach***\r\nTest the individual functions\r\nbottom / lowest level functions\r\nsub-tasks\r\nuse a  [[Driver]]"}
+{"title":"debugging","slug":"debugging","body":"***Top Down approach:***\r\nTesting the [[main()]] function\r\n\r\n***Bottom up approach***\r\nTest the individual functions\r\nbottom / lowest level functions\r\nsub-tasks\r\nuse a  [[Driver]]"}

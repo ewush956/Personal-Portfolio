@@ -53,7 +53,7 @@ A node is a *course* if and only if the index note links to it. So:
 1. Write the course's parent note in the vault.
 2. Link it from `Computer Science.md`, following the existing format —
    `- **[[NAME]]** — one-line description.` under the right year heading.
-   Use a full vault path (`[[MATH 4TH YEAR/…/CRYPTOGRAPHY|CRYPTOGRAPHY]]`) only
+   Use a full vault path (`[[SUBJ 4TH YEAR/…/CRYPTOGRAPHY|CRYPTOGRAPHY]]`) only
    when the basename collides case-insensitively with another note, as
    `CRYPTOGRAPHY` does with `Books/Cryptography.md`.
 3. Add it to `COURSE_TOPICS` in `scripts/topics.mjs`, most central topic first —
@@ -63,8 +63,10 @@ A node is a *course* if and only if the index note links to it. So:
    on. Machine Learning declares `math-stats`; Statistics does not claim
    `ml-ai` back, or every filter ends up showing every course.
 4. Add its folder to `FOLDER_TO_TOPIC` so untagged notes inside it still bucket.
-5. If it isn't filed in a numbered folder of its own, put `code: COMP 4630` in
-   its frontmatter — otherwise the reading panel names it without its number.
+5. If it isn't filed in a numbered folder of its own, put `code: SUBJ 4630` in
+   its frontmatter. Not for display — course codes don't ship (see the scrub
+   below) — but so the scrub can find and remove a number the path never
+   spells out.
 6. Sync. The script asserts one index node, reports the course count, and says
    how many notes were attributed to a course by folder and how many by link.
 
@@ -140,15 +142,15 @@ one an even share of `TURNS` revolutions, and grows the radius from `R_MIN` to
 coordinates *are* the spiral, and difficulty rises with the radius.
 
 `courseLevel()` reads the level off the vault path: the numbered folder
-(`MATH 4TH YEAR/MATH 4111/` → 4), falling back to the subject-year folder for
-the few courses filed without a number of their own (`COMP 4TH YEAR/ARTIFICIAL
+(`SUBJ 4TH YEAR/SUBJ 4111/` → 4), falling back to the subject-year folder for
+the few courses filed without a number of their own (`SUBJ 4TH YEAR/ARTIFICIAL
 INTELLIGENCE.md` → 4), and null for notes that aren't coursework, which sort
 outermost. Ties break on the order `Computer Science.md` lists them, counting
 only links under a `## ` heading — the intro names a few courses out of sequence
 and must not move them.
 
 Level, not the year taken. The index groups by year and the two disagree in five
-places: STATISTICS is MATH 2234 sitting under First year, ALGORITHMS AND
+places: STATISTICS is a 2000-level course sitting under First year, ALGORITHMS AND
 COMPLEXITY is a fourth-year course under Third. Ordering by heading put a
 4000-level course third along the spiral.
 
@@ -220,19 +222,18 @@ cacheable 200 of the wrong type that browsers hold onto long afterwards.
 
 **Every node knows its course, and the folder decides before the links do.**
 The line under the title in the reading panel used to be the vault path; it now
-reads `MATH 4199: Fourier and Complex Analysis`, the same string for the course
-note and for everything belonging to it. `scripts/build-graph.mjs` works out
-which course that is and ships it as `node.course` (a course node id) plus
-`node.code`; `src/graph/courseLabel.ts` only formats what it is handed, and adds
-the two cases with no course — the index says `Course List`, an unclaimed note
-names its folder.
+reads `Fourier and Complex Analysis`, the same string for the course note and
+for everything belonging to it. `scripts/build-graph.mjs` works out which course
+that is and ships it as `node.course`, a course node id; `src/graph/courseLabel.ts`
+only names what it is handed, and adds the two cases with no course — the index
+says `Topics List`, an unclaimed note names its folder.
 
 The filing wins wherever it says anything. A course owns a folder when it sits
-in its own numbered one (`MATH 4199/`) or beside a folder of its own name
+in its own numbered one (`SUBJ 4199/`) or beside a folder of its own name
 (`Leetcode.md` next to `Leetcode/`), and everything underneath is its own —
 840 of 948 notes. Nothing looser counts: `Books/` holds one course note and forty
-unrelated books, and the three COMP courses filed without numbers share
-`COMP 4TH YEAR/` with each other and 33 loose notes.
+unrelated books, and the three courses filed without numbers share
+one subject-year folder with each other and 33 loose notes.
 
 For the ~75 notes left, the links decide, and the direction is the whole point —
 a course naming the note, not the note naming a course. Almost every note reaches
@@ -254,16 +255,50 @@ every claimant is ranked instead, which is what correctly leaves `Karnaugh Maps`
 with The New Turing Omnibus. Ties fall to the more direct mention, then to the
 lower course id, so nothing depends on map iteration order.
 
-**A course filed without a numbered folder needs `code:` in its frontmatter.**
-`courseCode()` reads the number off the path and that covers 26 of 32 courses;
-the rest have nowhere in the vault to put it, so `code: COMP 4630` at the top of
-`MACHINE LEARNING.md` supplies it. Note that this is *display only* — it is
-deliberately not fed to `courseLevel()`, which still reads the folder, so adding
-a code cannot silently re-solve the spiral. The two now disagree on the three
-courses that have one: Algorithms and Complexity is COMP 3614 and Artificial
-Intelligence is COMP 3625, both sitting in `COMP 4TH YEAR/` and therefore still
-placed at the fourth-year radius. Reconciling that means moving them on the
-spiral and re-shipping coordinates; it has not been done.
+**No course code leaves the build.** A registrar's number pins a note to one
+institution's offering of a subject, which is the one claim on this material
+that isn't the author's to make, so the scrub in `scripts/build-graph.mjs`
+takes them all out on the way to `public/graph/`: out of note bodies, out of
+`course/…` tags, and out of the paths that used to ship on every node (only
+`node.folder` survives, and only because four notes no course claims fall back
+to naming their folder).
+
+The vault keeps them. The scrub runs on the way out, like `REDACTIONS`, so
+Obsidian still has the filing it needs and nothing is maintained twice. It runs
+*after* the solve, for two reasons: most codes read best replaced by the
+course's own **name**, and that map is built from the course nodes, so it can't
+exist earlier; and running last means the scrub can't perturb link extraction,
+attribution or the layout.
+
+Read `CODE_SCRUB` as a pipeline — each rule assumes the ones above it have run,
+and most codes are gone before the last two see them. `([[STATISTICS]], SUBJ
+2234)` loses a parenthetical; `[[…|SUBJ 2303]]` loses a label; a full vault path
+inside a wikilink loses its folders, which changes no edge because both link
+parsers already take the last segment. Only what's left — `[[Kernel]] in SUBJ
+2655`, or a course note opening with its own number — is rewritten to the
+course's name.
+
+**The guarantee is `assertScrubbed`, not the rules.** Nothing is written until
+it passes, and it looks for any three- or four-letter prefix on a four-digit
+number, not just the five subjects the vault has: a new one fails loudly rather
+than shipping unnoticed. It reads real newlines rather than a JSON string's
+`\n` escapes, because a code can wrap across a line — and the vault's
+blockquotes carry a `> ` onto the continuation, so `the one SUBJ\n> 2633 does
+not` has to match as one code. It doesn't, and the prefix gets rewritten while
+the digits sit there looking like prose.
+
+Two things are *deliberately* not scrubbed. `[[DISCRETE MATH]]` is a note's real
+title, so the bare-prefix rule matches wikilinks only to pass them through
+untouched. And the vault folder names in `FOLDER_TO_TOPIC` and
+`check-notes.mjs`'s `BATCHES` are how those scripts find the vault; they are
+build inputs, not output, and the site ships none of them.
+
+**`code:` in a course's frontmatter is a scrub input.** `courseCode()` reads the
+number off the path and that covers 26 of 32 courses; the rest have nowhere in
+the vault to put it, so `code: SUBJ 4630` at the top of `MACHINE LEARNING.md`
+supplies it — which is how `courseNameByCode` knows to rewrite that number
+where a note writes it out. It is deliberately not fed to `courseLevel()`, which
+still reads the folder, so adding a code cannot silently re-solve the spiral.
 
 **Slugs must stay order-independent.** Six pairs of notes collapse to the same
 base slug (`Cryptography`/`CRYPTOGRAPHY`, `Node JS`/`Node.js`). Collisions are

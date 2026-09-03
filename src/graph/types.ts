@@ -4,7 +4,11 @@ export interface GraphNode {
   id: number;
   title: string;
   slug: string;
-  path: string;
+  /** The vault directory the note sits in, or null at the vault root. Only the
+      folder, never the full path: the path spells out course folders, which do
+      not leave the build. Read for the few notes no course claims — see
+      `courseLabel.ts`. */
+  folder: string | null;
   kind: NodeKind;
   /** Primary topic bucket — drives the node's colour only. Null for index/course. */
   topic: string | null;
@@ -12,11 +16,6 @@ export interface GraphNode {
   topics: string[];
   year: number | null;
   degree: number;
-  /** A course's number, `MATH 4199` — from its folder, or from `code:` in the
-      note's frontmatter for the courses filed without a numbered folder. Null
-      for notes, for the index, and for the courses that have no number at all
-      (Leetcode, the reading ones). */
-  code: string | null;
   /** The course this node belongs to, as a node id — what the reading panel
       names under the title. A course is its own; the index has none, and nor do
       the few notes no course draws on. Decided at build time, off the vault:

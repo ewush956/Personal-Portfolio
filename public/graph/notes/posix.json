@@ -1,1 +1,1 @@
-{"title":"POSIX","slug":"posix","path":"COMP 3RD YEAR/COMP 3659/POSIX.md","tags":[],"body":"`sem_init`: Initial semaphore value\n`sem_wait`: tests semaphore, if it's 0, call blocks\n`sem_post`: when leaving crit section, and wakes it back up"}
+{"title":"POSIX","slug":"posix","body":"`sem_init`: Initial semaphore value\n`sem_wait`: tests semaphore, if it's 0, call blocks\n`sem_post`: when leaving crit section, and wakes it back up"}

@@ -46,7 +46,7 @@ export function remarkWikilink(options: WikilinkOptions) {
         const [rawTarget, rawLabel] = inner.split('|');
         const bare = rawTarget.split('#')[0].split('^')[0].trim();
         // Cross-folder links are written as full vault paths —
-        // `[[MATH 4TH YEAR/MATH 4111/CRYPTOGRAPHY|CRYPTOGRAPHY]]`. Take the
+        // `[[Books/Cryptography|Cryptography]]`. Take the
         // last segment, exactly as the build script's extractLinks does. Without
         // this the two disagree: the link becomes a real edge in the graph but
         // renders greyed-out as unresolved in the note panel.

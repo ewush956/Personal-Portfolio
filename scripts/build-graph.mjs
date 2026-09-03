@@ -231,7 +231,7 @@ for (const file of files) {
   /* A course's number. Almost every course carries it in its folder path and
      needs nothing here; this is the override for the handful filed without a
      numbered folder of their own, where the vault has nowhere else to put it.
-     Add `code: COMP 4677` to the course note's frontmatter and it shows up in
+     Add `code: SUBJ 4677` to the course note's frontmatter and it shows up in
      the reading panel like every other course's does. */
   const code = typeof parsed.data?.code === 'string' ? parsed.data.code.trim() : null;
 
@@ -284,7 +284,7 @@ for (const target of notes[indexIdx].links) {
  * Course level, which is what orders the spiral: 1200 is a first-level course,
  * 4111 a fourth. Taken from the numbered folder the note sits in.
  *
- * The subject-year folder (`COMP 4TH YEAR/`) is the fallback for the few
+ * The subject-year folder (`SUBJ 4TH YEAR/`) is the fallback for the few
  * courses filed without a number of their own, and null for the notes that
  * aren't coursework at all — those sort to the outer end.
  *
@@ -439,10 +439,6 @@ const nodes = notes.map((n, i) => {
     topics: kind === 'index' ? [] : topics,
     year,
     degree: degree[i],
-    /* A course's number, for the line the reading panel puts under a title.
-       The numbered folder is the vault's own answer wherever it gives one;
-       `code:` in the frontmatter covers the courses filed without one. */
-    code: kind === 'course' ? (n.code ?? courseCode(n.rel)) : null,
     /** The course this node belongs to, as a course node id. Filled in below. */
     course: null,
     x: 0,
@@ -455,15 +451,15 @@ const nodes = notes.map((n, i) => {
 // --------------------------------------------------------------------------
 /*
  * Which course each node belongs to, as a course node id — the reading panel
- * shows it under the title instead of the vault path (`MATH 4199: Fourier and
- * Complex Analysis`, not `MATH 4TH YEAR/MATH 4199/Fourier Series.md`).
+ * shows it under the title instead of the vault path (`Fourier and Complex
+ * Analysis`, not two folder names and a file extension).
  *
  * Two rules, in order. The filing is authoritative where it says anything: a
- * course owns a folder when it sits in its own numbered one (`MATH 4199/`) or
+ * course owns a folder when it sits in its own numbered one (`SUBJ 4199/`) or
  * beside a folder of its own name (`Leetcode.md` next to `Leetcode/`), and
  * everything under an owned folder is that course's. Nothing looser counts —
  * `Books/` holds one course note and forty unrelated books, and the three
- * fourth-year COMP courses filed without numbers share a folder with each other
+ * fourth-year courses filed without numbers share a folder with each other
  * and with 33 loose notes, so neither folder speaks for a single course.
  *
  * That leaves ~75 notes, and for those the links decide. It has to be *this*
@@ -567,8 +563,8 @@ for (const n of nodes) {
     continue;
   }
 
-  // Deepest owning folder wins: COMP 4299's notes are Directed Reading's, not
-  // the fourth-year folder's.
+  // Deepest owning folder wins: a note under Directed Reading's own numbered
+  // folder is Directed Reading's, not the enclosing subject-year folder's.
   let course = null;
   for (let d = dirOf(n.path); d && course === null; d = dirOf(d)) {
     course = ownedFolders.get(d.toLowerCase()) ?? null;
@@ -581,7 +577,7 @@ for (const n of nodes) {
   n.course = course;
 }
 
-/** `MATH 4TH YEAR/MATH 4199/…` → `MATH 4199`, and null where no folder says. */
+/** `SUBJ 4TH YEAR/SUBJ 4199/…` → `SUBJ 4199`, and null where no folder says. */
 function courseCode(rel) {
   const dir = rel.slice(0, rel.lastIndexOf('/'));
   const leaf = dir.slice(dir.lastIndexOf('/') + 1);
@@ -733,6 +729,218 @@ for (const [i, sn] of simNodes.entries()) {
 // --------------------------------------------------------------------------
 // Emit
 // --------------------------------------------------------------------------
+// Course codes
+// --------------------------------------------------------------------------
+/*
+ * `SUBJ 3612`, `SUBJ 4TH YEAR/`, `course/subj-2303` — none of it ships.
+ *
+ * The notes are the author's own writing, but a registrar's number pins each
+ * one to a specific institution's specific offering of a subject, which is the
+ * one claim on this material that isn't the author's to make. Stripping the
+ * numbers leaves a note reading as what it is about. The vault keeps them: this
+ * runs on the way out, like REDACTIONS, so Obsidian still has the filing it
+ * needs and nothing has to be maintained in two places.
+ *
+ * It runs *here*, after the solve, rather than up in the parse loop, for two
+ * reasons. Most codes are best replaced by the course's own name and that map
+ * is built from the course nodes, so it cannot exist any earlier. And running
+ * last means the scrub cannot perturb link extraction, attribution or the
+ * layout — the shipped coordinates are the same coordinates either way.
+ *
+ * The guarantee is `assertScrubbed` at the end, not the rules above it. Write a
+ * note that phrases a code in a shape these rules don't cover and the build
+ * fails naming the note, rather than quietly publishing the code.
+ */
+const DEPTS = 'COMP|MATH|ASTR|PHYS|PHIL';
+/* A code can wrap across a line, and the vault's blockquotes carry a `> ` onto
+   the continuation: `the one SUBJ\n> 2633 does not`. Miss that and the digits
+   are left stranded next to a rewritten prefix, which reads like nonsense and
+   is invisible to a check that only looks for whole codes. */
+const GAP = String.raw`(?:[ _-]|[ \t]*\n[ \t]*>?[ \t]*)`;
+const CODE = String.raw`(?:${DEPTS})${GAP}?\d{4}`;
+const YEAR_FOLDER = String.raw`(${DEPTS}) (\d)(?:ST|ND|RD|TH) YEAR`;
+/** A course number or the subject-year folder that stands in for one. Both name
+    a course by its filing rather than by its subject, and both get scrubbed. */
+const FILING = String.raw`(?:${CODE}|${YEAR_FOLDER})`;
+
+/** `subj-2631`, `SUBJ2631`, `SUBJ\n> 2631` → `SUBJ 2631`, so one map key serves
+    every spelling: frontmatter, folder name, tag, prose. */
+const normaliseCode = (s) => s.toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
+
+/** Department prefix used as a bare word — "every other COMP course". It reads
+    as a code even without a number on it, so it goes too. */
+const DEPT_WORD = {
+  COMP: 'computer science',
+  MATH: 'math',
+  ASTR: 'astronomy',
+  PHYS: 'physics',
+  PHIL: 'philosophy',
+};
+const ORDINAL = { 1: 'first', 2: 'second', 3: 'third', 4: 'fourth' };
+/** `SUBJ 4TH YEAR` → `fourth-year computer science`. The folder is load-bearing
+    where it appears in prose — it means the fourth-year notes as a body of work
+    — so it is said in words rather than dropped. */
+const yearFolderWords = (_m, dept, year) => `${ORDINAL[year]}-year ${DEPT_WORD[dept]}`;
+
+/** Code → the course's title. Built from the course nodes, so a new course is
+    covered by adding it to the index note and nothing else. */
+const courseNameByCode = new Map();
+for (const n of nodes) {
+  if (n.kind !== 'course') continue;
+  const code = notes[n.id].code ?? courseCode(n.path);
+  if (code) courseNameByCode.set(normaliseCode(code), n.title);
+}
+/* `Mathematical Methods's pass`. Only a few titles end in s, so the apostrophe
+   is fixed by name rather than by a rule about words ending in s, which would
+   also rewrite `the class's`. */
+const NAMES_ENDING_IN_S = [...courseNameByCode.values()].filter((t) => t.endsWith('s'));
+
+/* Order matters throughout: each rule assumes the ones above it have run. */
+const CODE_SCRUB = [
+  {
+    // A callout that exists only to say the course was renumbered. Every fact
+    // in it is a course number, so there is nothing left to keep once they go.
+    name: 'renumbering callout',
+    re: /^> \[!note\] The course number changed[^]*?\n\n/m,
+    with: '',
+  },
+  {
+    // `` `SUBJ 4TH YEAR/` `` used as a noun — "the same table in `SUBJ 4TH
+    // YEAR/`". Stripping it as a path would leave an empty code span, so it is
+    // put into words before the path rule below can see it.
+    name: 'year folder as a name',
+    re: new RegExp(String.raw`\`${YEAR_FOLDER}/?\``, 'g'),
+    with: yearFolderWords,
+  },
+  {
+    // Vault paths, in wikilinks (`[[SUBJ 4TH YEAR/SUBJ 4111/CRYPTOGRAPHY|…]]`)
+    // and in prose. Both link parsers already take the last segment — see
+    // extractLinks here and remarkWikilink at runtime — so the folders in front
+    // of it are decoration and dropping them changes no edge.
+    name: 'course folder in a path',
+    re: new RegExp(String.raw`(?:${YEAR_FOLDER}|${CODE})/`, 'g'),
+    with: '',
+  },
+  {
+    // What the rule above leaves behind: a full-path link written out with its
+    // own basename as the label is now `[[CRYPTOGRAPHY|CRYPTOGRAPHY]]`.
+    name: 'alias that repeats its target',
+    re: /\[\[([^\]|]+)\|\1\]\]/g,
+    with: '[[$1]]',
+  },
+  {
+    // `[[LINEAR ALGEBRA FOR DATA SCIENCE|SUBJ 2303]]` — the code as link text.
+    // The target already names the course; the label can just be the target.
+    name: 'course code as a link label',
+    re: new RegExp(String.raw`\[\[([^\]|]+?)\\?\|${CODE}\]\]`, 'g'),
+    with: '[[$1]]',
+  },
+  {
+    // `- SUBJ 3612, [[WEB DEVELOPMENT FOR CS]]:` — the code introducing the
+    // link that names the same course. Left in, it becomes the name twice.
+    name: 'course code introducing its own link',
+    re: new RegExp(String.raw`${CODE},[ \t]*(?=\[\[)`, 'g'),
+    with: '',
+  },
+  {
+    // A parenthetical that wrapped onto its own line. The general rule below
+    // takes the space in front of a parenthesis; at a line start the space to
+    // take is the one behind it, or the line begins on a space.
+    name: 'parenthesised course code opening a line',
+    re: new RegExp(String.raw`^([ \t]*)\(${FILING}\)[ \t]*`, 'gm'),
+    with: '$1',
+  },
+  {
+    // `([[STATISTICS]], SUBJ 2234)` — the code trailing a name that already
+    // said it. The line wrap is real: several of these sit at a margin.
+    name: 'course code trailing a parenthesised name',
+    re: new RegExp(String.raw`,\s*${FILING}\)`, 'g'),
+    with: ')',
+  },
+  {
+    // `(SUBJ 2633, the OO sense)` — the same pairing written the other way up.
+    name: 'course code leading a parenthesised aside',
+    re: new RegExp(String.raw`\(${FILING},\s*`, 'g'),
+    with: '(',
+  },
+  {
+    // `[[Orthogonal Functions]] (SUBJ 4199): the same idea` — the whole
+    // parenthesis is the code, so it goes with its leading space.
+    name: 'parenthesised course code',
+    re: new RegExp(String.raw`[ \t]*\(${FILING}\)`, 'g'),
+    with: '',
+  },
+  {
+    // A year folder left in running prose, no backticks and no path around it.
+    name: 'year folder in prose',
+    re: new RegExp(YEAR_FOLDER, 'g'),
+    with: yearFolderWords,
+  },
+  {
+    // What's left is load-bearing prose — `[[Kernel]] in SUBJ 2655`, or a
+    // course note opening with its own number — and wants the course's name.
+    // An unmapped code is left alone deliberately: assertScrubbed then stops
+    // the build rather than this inventing a replacement for it.
+    name: 'course code in prose',
+    re: new RegExp(CODE, 'g'),
+    with: (m) => courseNameByCode.get(normaliseCode(m)) ?? m,
+  },
+  {
+    // `SUBJ 3200's pass` became `Mathematical Methods's pass`.
+    name: 'possessive on a course name ending in s',
+    re: new RegExp(String.raw`\b(${NAMES_ENDING_IN_S.join('|')})'s\b`, 'g'),
+    with: "$1'",
+  },
+  {
+    // The bare prefix, outside any wikilink: "every other COMP course" is a
+    // code too. Inside a wikilink it is a note's actual title — [[DISCRETE
+    // MATH]] — so those are matched only to be passed through untouched.
+    name: 'bare department prefix',
+    re: new RegExp(String.raw`\[\[[^\]]*\]\]|\b(${DEPTS})\b(?![ _-]?\d)`, 'g'),
+    with: (m, dept) => (dept ? DEPT_WORD[dept] : m),
+  },
+];
+
+for (const n of notes) {
+  for (const r of CODE_SCRUB) n.body = n.body.replace(r.re, r.with);
+}
+
+/* Tags carry the code in their own spelling (`course/subj-2303`). Nothing
+   renders them, but they ship, so they are filtered rather than rewritten. */
+const CODE_TAG = new RegExp(String.raw`(?:${DEPTS})[ _-]?\d{4}`, 'i');
+for (const n of notes) n.tags = n.tags.filter((t) => !CODE_TAG.test(t));
+
+/**
+ * Nothing leaves with a code in it. Deliberately broader than the rules above:
+ * any three- or four-letter prefix on a four-digit number, so a subject the
+ * vault has yet to acquire fails loudly here instead of shipping unnoticed.
+ *
+ * Give it real newlines, not the `\n` escapes of a JSON string — a code that
+ * wrapped across a line is exactly the kind this is here to catch.
+ */
+const ANY_CODE = new RegExp(String.raw`\b[A-Z]{3,4}${GAP}?\d{4}\b`, 'g');
+/** Not course codes, and old enough to stay. */
+const NOT_A_CODE = new Set(['JPEG 2000']);
+/** The prefix on its own, checked outside wikilinks only: inside them it is a
+    note's real title (`[[DISCRETE MATH]]`) and must survive. */
+const BARE_DEPT = new RegExp(String.raw`${YEAR_FOLDER}|\b(?:${DEPTS})\b`, 'g');
+
+function assertScrubbed(where, text) {
+  const found = [
+    ...[...text.matchAll(ANY_CODE)].map((m) => m[0]).filter((m) => !NOT_A_CODE.has(m)),
+    ...[...text.replace(/\[\[[^\]]*\]\]/g, '').matchAll(BARE_DEPT)].map((m) => m[0]),
+  ];
+  if (!found.length) return;
+  console.error(
+    `\nFATAL: course code survived the scrub in ${where}: ${[...new Set(found)].join(', ')}\n` +
+      `Add a rule to CODE_SCRUB for the shape it is written in, or add the\n` +
+      `course to the index note so courseNameByCode knows its name. Not\n` +
+      `shipping it.`,
+  );
+  process.exit(1);
+}
+
+// --------------------------------------------------------------------------
 // Write over the top, then prune what's no longer current.
 //
 // NOT rm -rf followed by a rebuild: that leaves a window, up to a second wide,
@@ -747,6 +955,27 @@ mkdirSync(NOTES_DIR, { recursive: true });
     its own fetch of graph.json against the exact sync that produced it. */
 const buildId = shortHash(new Date().toISOString() + nodes.length);
 
+/**
+ * A node as it ships. The vault path is build-time machinery — attribution, the
+ * spiral's ordering, folder ownership — and it spells out course folders, so it
+ * stays here. What the page actually reads off it is the directory, and only
+ * for the handful of notes no course claims; see `courseLabel.ts`.
+ *
+ * Which is why dropping the course folders from it costs nothing: every note
+ * filed under one belongs to that course by definition, so it is named by
+ * `node.course` and never falls back to this. What is left is the folder of a
+ * note no course owns — `Books` — or nothing.
+ */
+const CODE_FOLDER = new RegExp(String.raw`^(?:${YEAR_FOLDER}|${CODE})$`);
+const publicNode = ({ path, ...n }) => ({
+  ...n,
+  folder:
+    dirOf(path)
+      .split('/')
+      .filter((seg) => seg && !CODE_FOLDER.test(seg))
+      .join('/') || null,
+});
+
 const graph = {
   generatedAt: new Date().toISOString(),
   // Cache key for the per-note fetches. Without it a browser can hold an old
@@ -755,13 +984,15 @@ const graph = {
   buildId,
   indexId: indexIdx,
   topics: TOPICS,
-  nodes,
+  nodes: nodes.map(publicNode),
   // Flat index pairs. The runtime builds its own CSR adjacency from these in
   // O(E) at load, which is cheaper than shipping ~100 KB of precomputed offsets.
   edges: edgePairs.flat(),
 };
 
-writeFileSync(join(OUT_DIR, 'graph.json'), JSON.stringify(graph));
+const graphJson = JSON.stringify(graph);
+assertScrubbed('graph.json', graphJson.replace(/\\n/g, '\n'));
+writeFileSync(join(OUT_DIR, 'graph.json'), graphJson);
 
 const wanted = new Set(nodes.map((n) => `${n.slug}.json`));
 for (const stale of readdirSync(NOTES_DIR)) {
@@ -769,16 +1000,13 @@ for (const stale of readdirSync(NOTES_DIR)) {
 }
 
 for (const [i, n] of notes.entries()) {
-  writeFileSync(
-    join(NOTES_DIR, `${nodes[i].slug}.json`),
-    JSON.stringify({
-      title: nodes[i].title,
-      slug: nodes[i].slug,
-      path: n.rel,
-      tags: n.tags,
-      body: n.body.trim(),
-    }),
-  );
+  const payload = JSON.stringify({
+    title: nodes[i].title,
+    slug: nodes[i].slug,
+    body: n.body.trim(),
+  });
+  assertScrubbed(`${nodes[i].slug}.json`, `${nodes[i].title}\n${n.body}`);
+  writeFileSync(join(NOTES_DIR, `${nodes[i].slug}.json`), payload);
 }
 
 // Counts for the Education card, emitted as a module so they are baked in at

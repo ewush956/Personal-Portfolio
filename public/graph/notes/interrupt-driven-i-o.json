@@ -1,1 +1,1 @@
-{"title":"Interrupt Driven I-O","slug":"interrupt-driven-i-o","path":"COMP 2ND YEAR/COMP 2659/Interrupt Driven I-O.md","tags":[],"body":"[[IRQs]]\n[[ISRs]]\n[[RDR]]\n[[IPL]]\n[[Vector Tables]]\n[[Context Switching]]\n[[Fetch-Execute Cycle]]\n[[Concurrency]]\n[[PIC]]"}
+{"title":"Interrupt Driven I-O","slug":"interrupt-driven-i-o","body":"[[IRQs]]\n[[ISRs]]\n[[RDR]]\n[[IPL]]\n[[Vector Tables]]\n[[Context Switching]]\n[[Fetch-Execute Cycle]]\n[[Concurrency]]\n[[PIC]]"}

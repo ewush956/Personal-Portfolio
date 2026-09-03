@@ -1,1 +1,1 @@
-{"title":"Locks","slug":"locks","path":"COMP 3RD YEAR/COMP 3659/Locks.md","tags":[],"body":"*The basic Idea*\n```C\nwhile (true) {\n\tacquire lock; //You can only speak when you have the magic conche shell\n\tcritical section;\n\trelease\n}\n```\n\n[[TAS]]\n[[Spin Lock]]\n[[Mutex Lock]] and [[Semaphores]]"}
+{"title":"Locks","slug":"locks","body":"*The basic Idea*\n```C\nwhile (true) {\n\tacquire lock; //You can only speak when you have the magic conche shell\n\tcritical section;\n\trelease\n}\n```\n\n[[TAS]]\n[[Spin Lock]]\n[[Mutex Lock]] and [[Semaphores]]"}

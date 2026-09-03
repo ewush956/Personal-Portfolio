@@ -8,7 +8,7 @@ import { visit } from 'unist-util-visit';
  * Obsidian writes them as a blockquote whose first line is a type marker:
  *
  *     > [!note] Not a duplicate
- *     > Books/Cryptography.md and MATH 4111/CRYPTOGRAPHY.md differ only in case.
+ *     > Books/Cryptography.md and CRYPTOGRAPHY.md differ only in case.
  *
  * That's an Obsidian extension, so remark sees an ordinary blockquote and
  * leaves `[!note]` sitting in the prose as literal text. This turns the

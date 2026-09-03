@@ -19,11 +19,6 @@ import './NotePanel.css';
 interface Note {
   title: string;
   slug: string;
-  path: string;
-  /** Carried by the note JSON and used to bucket the node into a topic at
-      build time. Not shown here: the header already names the note and where
-      it lives, and the tag row was a third line of chrome above the prose. */
-  tags: string[];
   body: string;
 }
 
@@ -289,13 +284,7 @@ export default function NotePanel({
           {/* Titled as well as written out: collapsed, the header clips a long
               title to hold the top bar's height (NotePanel.css). */}
           <h2 title={heading ?? undefined}>{heading ?? (error ? 'Not found' : 'Loading…')}</h2>
-          {/* The path is still worth having, just not worth a line: it rides
-              along on the tooltip. */}
-          {note && course && (
-            <p className="note-panel__course" title={note.path}>
-              {course}
-            </p>
-          )}
+          {note && course && <p className="note-panel__course">{course}</p>}
         </div>
         <div className="note-panel__actions">
           {/* Only rendered when this note was reached from another one, so it

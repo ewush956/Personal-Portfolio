@@ -1,1 +1,1 @@
-{"title":"Dynamic Allocation","slug":"dynamic-allocation","path":"COMP 1ST YEAR/COMP 1633/Dynamic Allocation.md","tags":[],"body":"[[Stack and Heap]]\r\n[[new And delete]]\r\n\r\nMore efficient use of memory, for example array[50] won't always use 50 things.\r\n\r\n\r\n[[Dynamic Arrays]]"}
+{"title":"Dynamic Allocation","slug":"dynamic-allocation","body":"[[Stack and Heap]]\r\n[[new And delete]]\r\n\r\nMore efficient use of memory, for example array[50] won't always use 50 things.\r\n\r\n\r\n[[Dynamic Arrays]]"}

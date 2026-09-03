@@ -1,1 +1,1 @@
-{"title":"I-O Device","slug":"i-o-device","path":"COMP 2ND YEAR/COMP 2659/I-O Device.md","tags":[],"body":"I-O device translates information between the computer and the environment\n\nNeeds [[Buffering]] because of *speed* differences, *data format* differences, and *electronic* differences."}
+{"title":"I-O Device","slug":"i-o-device","body":"I-O device translates information between the computer and the environment\n\nNeeds [[Buffering]] because of *speed* differences, *data format* differences, and *electronic* differences."}

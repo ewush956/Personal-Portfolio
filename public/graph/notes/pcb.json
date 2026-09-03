@@ -1,1 +1,1 @@
-{"title":"PCB","slug":"pcb","path":"COMP 3RD YEAR/COMP 3659/PCB.md","tags":[],"body":"The PCB *(Process Control Block)*, is an array of per-process states. It is usually implemented \nwith a Doubly [[Linked List]]"}
+{"title":"PCB","slug":"pcb","body":"The PCB *(Process Control Block)*, is an array of per-process states. It is usually implemented \nwith a Doubly [[Linked List]]"}

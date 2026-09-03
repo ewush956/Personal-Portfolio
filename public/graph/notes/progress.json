@@ -1,1 +1,1 @@
-{"title":"Progress","slug":"progress","path":"COMP 3RD YEAR/COMP 3659/Progress.md","tags":[],"body":"- If no process in critical section, only those in entry section participate in admission decision\n- Decision procedure must be [[Finite]]"}
+{"title":"Progress","slug":"progress","body":"- If no process in critical section, only those in entry section participate in admission decision\n- Decision procedure must be [[Finite]]"}
