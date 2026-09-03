@@ -5,41 +5,26 @@
    ships. Fill the ones marked TODO and they appear automatically.
    ========================================================================== */
 
-export interface Credential {
-  label: string;
-  value: string;
-}
+import { GRAPH_STATS } from './graphStats';
 
 export const EDUCATION = {
   degree: 'B.Sc. Computer Science',
   school: 'Mount Royal University',
   concentration: 'Concentration in Mathematics',
-  focus: 'Machine Learning',
+  /** Sits on the concentration line rather than in a stat row of its own. */
+  gpa: '3.82',
 
-  /** TODO: e.g. 'Class of 2025' or 'Expected 2026'. Hidden while empty. */
-  timeframe: '',
-
-  /**
-   * Extracurriculars read as prose here rather than as a separate list — one
-   * bullet under a heading made a single item look like an afterthought.
-   * TODO: the Launchpad sentence can carry your role or the outcome once
-   * there's something specific to say.
-   */
+  /** Counts come from the generated stats so they stay in sync with what
+      actually ships in `graph.json`. */
   blurb:
-    'Four years of computer science with a mathematics concentration, weighted ' +
-    'toward machine learning, with a run at the Launchpad Health Tech Challenge ' +
-    'along the way. Underneath all of it: a habit of writing everything down and ' +
-    'linking it together.',
-
-  credentials: [
-    { label: 'GPA', value: '3.82' },
-    { label: 'Standing', value: "President's Honour Roll" },
-  ] satisfies Credential[],
+    'This section offers an interactive graph like UI to help people understand ' +
+    'various topics in computer science. I did this to help give a visual ' +
+    'intuition to how all these ideas connect together. ' +
+    `${GRAPH_STATS.notes.toLocaleString()} notes across ${GRAPH_STATS.courses} courses, ` +
+    `with ${GRAPH_STATS.links.toLocaleString()} links between them.`,
 
   /** The call to action through to /graph. */
   cta: {
     label: 'Start Learning',
-    /** Sits under the label; the counts are appended after it. */
-    lead: 'See how all the ideas from a computer science degree work together —',
   },
 } as const;

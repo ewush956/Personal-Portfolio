@@ -1,6 +1,5 @@
 import { useTheme } from '../themes/useTheme';
 import { EDUCATION } from '../data/education';
-import { GRAPH_STATS } from '../data/graphStats';
 import { Reveal } from './ui/Reveal';
 import './Education.css';
 
@@ -11,7 +10,7 @@ function prefetchGraph() {
 
 export function Education() {
   const { themeId } = useTheme();
-  const { degree, school, concentration, focus, timeframe, blurb } = EDUCATION;
+  const { degree, school, concentration, gpa, blurb } = EDUCATION;
 
   return (
     <section className="section education" id="education">
@@ -25,25 +24,19 @@ export function Education() {
             <div className="edu-card__body">
               <header className="edu-card__head">
                 <h3 className="edu-card__degree">{degree}</h3>
-                <p className="edu-card__school">
-                  {school}
-                  {timeframe && <span className="edu-card__when"> · {timeframe}</span>}
-                </p>
+                <p className="edu-card__school">{school}</p>
                 <p className="edu-card__focus">
-                  {concentration} · Focus in {focus}
+                  {concentration}
+                  {gpa && (
+                    <>
+                      {' · '}
+                      <span className="edu-card__gpa">GPA {gpa}</span>
+                    </>
+                  )}
                 </p>
               </header>
 
               <p className="edu-card__blurb">{blurb}</p>
-
-              <dl className="edu-card__creds">
-                {EDUCATION.credentials.map((c) => (
-                  <div className="edu-cred" key={c.label}>
-                    <dt>{c.label}</dt>
-                    <dd>{c.value}</dd>
-                  </div>
-                ))}
-              </dl>
 
               <a
                 className="edu-cta"
@@ -52,12 +45,6 @@ export function Education() {
                 onFocus={prefetchGraph}
               >
                 <span className="edu-cta__label">{EDUCATION.cta.label}</span>
-                <span className="edu-cta__meta">
-                  {EDUCATION.cta.lead}{' '}
-                  {GRAPH_STATS.notes.toLocaleString()} notes,{' '}
-                  {GRAPH_STATS.courses} courses and{' '}
-                  {GRAPH_STATS.links.toLocaleString()} links you can walk through.
-                </span>
               </a>
             </div>
 
