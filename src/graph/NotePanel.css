@@ -32,6 +32,18 @@
   display: none;
 }
 
+/* Collapsed to its header: the note stays open and keeps your place, and the
+   graph — with the topic filter that sits behind the rail — gets the screen
+   back. `bottom: auto` is what lets a full-height rail shrink to its header;
+   the phone's sheet drops the height it sets instead. */
+.note-panel--collapsed {
+  bottom: auto;
+}
+
+.note-panel--collapsed .note-panel__body {
+  display: none;
+}
+
 .note-panel__head {
   display: flex;
   align-items: flex-start;
@@ -93,21 +105,14 @@
   background: var(--btn-hover-bg);
 }
 
-.note-panel__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0;
-  padding: var(--space-3) var(--space-5) 0;
-  list-style: none;
+/* One glyph for both halves of the toggle: down to put the panel away, up to
+   bring it back. */
+.note-panel__btn--collapse svg {
+  transition: transform 0.24s var(--ease);
 }
 
-.note-panel__tags li {
-  padding: 2px 8px;
-  font-size: var(--text-sm);
-  color: var(--tag-fg);
-  background: var(--tag-bg);
-  border-radius: 999px;
+.note-panel--collapsed .note-panel__btn--collapse svg {
+  transform: rotate(180deg);
 }
 
 .note-panel__body {
@@ -302,23 +307,33 @@
 
 @media (max-width: 720px) {
   /* A bottom sheet on a phone: a 560px rail would cover the graph anyway.
-     62vh rather than 72 so there's a usable strip of graph above it even when
-     expanded. */
+     70vh leaves a strip of graph above it to keep your bearings, without
+     spending screen on a view you can have back whole by collapsing.
+
+     Must equal SHEET_OPEN in layout.ts, which the drag snapping and the graph
+     camera both read — CSS can't. */
   .note-panel {
     top: auto;
     left: 0;
     width: auto;
-    height: 62vh;
+    /* `--sheet-h` is set on the element once the reader has dragged the sheet
+       to a height of their own; until then this default stands. Read here
+       rather than as an inline `height` so it can only ever apply to the
+       sheet — the rail above must keep its top/bottom anchoring. */
+    height: var(--sheet-h, 70vh);
     border-left: none;
     border-top: 1px solid var(--graph-panel-border);
     border-radius: var(--card-radius) var(--card-radius) 0 0;
     transition: height 0.24s var(--ease);
   }
 
-  /* Collapsed to its header: the note stays open and keeps your place, the
-     graph gets the screen back. */
+  /* Bottom-anchored, unlike the rail: the sheet shrinks towards the bottom
+     edge it is attached to. `bottom` has to come back from the `auto` the
+     shared rule sets for the rail — with neither edge pinned the sheet falls
+     back to its static position and vanishes off the top of the graph. */
   .note-panel--collapsed {
     height: auto;
+    bottom: 0;
   }
 
   /* While a finger is on the handle the height is set inline, frame by frame —
@@ -334,20 +349,7 @@
     overflow: hidden;
   }
 
-  .note-panel--collapsed .note-panel__tags,
-  .note-panel--collapsed .note-panel__body {
-    display: none;
-  }
-
-  .note-panel--collapsed /* The title is what gives when the header is tight. Without min-width:0 a flex
-   item won't shrink past its min-content width, so on a 320px screen the title
-   held its ground and shoved the buttons off the edge of the panel. */
-.note-panel__heading {
-  min-width: 0;
-}
-
-.note-panel__head h2 {
-  overflow-wrap: anywhere;
+  .note-panel__head h2 {
     font-size: var(--text-lg);
   }
 
@@ -405,6 +407,14 @@
 }
 
 @media (min-width: 721px) {
+/* Nothing to hand back: full screen covers the graph and the filter both, so
+   the control that uncovers them has no meaning here. Entering full screen
+   also expands, so this can never hide the only way out of a collapsed
+   panel. */
+.note-panel--fullscreen .note-panel__btn--collapse {
+  display: none;
+}
+
 .note-panel--fullscreen {
   inset: 0;
   width: auto;
@@ -426,16 +436,9 @@
   display: block;
 }
 
-/* Tags are a flex row — forcing `block` alongside the body turned each one
-   into a full-width bar. */
-.note-panel--fullscreen .note-panel__tags {
-  display: flex;
-}
-
 /* A comfortable measure instead of letting lines run the full width of a
    landscape screen. */
 .note-panel--fullscreen .note-panel__head,
-.note-panel--fullscreen .note-panel__tags,
 .note-panel--fullscreen .note-panel__body {
   max-width: 78ch;
   margin-inline: auto;

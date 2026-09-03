@@ -399,6 +399,17 @@
   display: none;
 }
 
+/* Unless the panel is collapsed to its header, which is most of the point of
+   collapsing on a wide screen: the filter lives directly behind the rail, so
+   folding the rail away is what hands it back. Scoped to the rail — a phone's
+   legend is a full-width bar along the bottom, exactly where the collapsed
+   sheet's header sits. */
+@media (min-width: 721px) {
+  .graph-page--reading.graph-page--collapsed .graph-legend {
+    display: flex;
+  }
+}
+
 .graph-page--reading .graph-chrome--top {
   right: var(--note-w);
 }

@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../themes/useTheme';
 import { GraphRenderer } from './renderer';
@@ -9,6 +10,7 @@ import { GraphLegend } from './GraphLegend';
 import { GraphMenu } from './GraphMenu';
 import { ArrowLeftIcon } from '../components/icons';
 import type { LabelMode } from './renderer';
+import { SHEET_OPEN } from './layout';
 import type { GraphData, GraphNode } from './types';
 import './GraphPage.css';
 
@@ -27,11 +29,11 @@ const NARROW = 720;
  * panel's space up front is what lets the first click on "Start here" leave the
  * camera exactly where it already was.
  */
-function panelInset(fullscreen: boolean) {
+function panelInset(fullscreen: boolean, sheet: number | null) {
   const wide = window.innerWidth > NARROW;
   return {
     right: fullscreen ? 0 : wide ? Math.min(560, window.innerWidth * 0.92) : 0,
-    bottom: fullscreen ? 0 : wide ? 0 : window.innerHeight * 0.62,
+    bottom: fullscreen ? 0 : wide ? 0 : (sheet ?? window.innerHeight * SHEET_OPEN),
   };
 }
 
@@ -39,7 +41,13 @@ export default function GraphPage() {
   const { themeId } = useTheme();
   const [data, setData] = useState<GraphData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [hovered, setHovered] = useState<GraphNode | null>(null);
+  /* Hover state lives in `GraphReadout`, not here. Moving the cursor over the
+     canvas changes the hovered node many times a second, and holding that in
+     this component re-rendered the whole page on every one of them — search,
+     legend, the course list, and the open note with its rendered markdown.
+     The readout is the only thing that reads it, so it is the only thing that
+     re-renders. The renderer pushes hovers through this ref. */
+  const hoverRef = useRef<(node: GraphNode | null) => void>(() => {});
 
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -102,6 +110,23 @@ export default function GraphPage() {
   // anything useful without burying the graph in note titles.
   const [labelMode, setLabelMode] = useState<LabelMode>('courses');
   const [fullscreen, setFullscreen] = useState(false);
+
+  /* The panel shrunk to its header. Held here rather than inside the panel
+     because collapsing has to uncover the topic filter, which is the panel's
+     sibling — CSS can't reach up out of the panel to reveal it. */
+  const [collapsed, setCollapsed] = useState(false);
+
+  /* The height the phone's sheet has been dragged to. Also held here: it
+     outlives the note it was set on, and the graph frames itself against it,
+     so pulling the sheet down really does buy canvas rather than just
+     uncovering it. Deliberately *not* cleared when the note changes — a
+     reader who made room to see the graph keeps that room while they browse.
+     `inset` reads it through a ref so the callbacks below stay stable and the
+     renderer isn't rebuilt on a resize. */
+  const [sheetHeight, setSheetHeight] = useState<number | null>(null);
+  const sheetRef = useRef<number | null>(null);
+  sheetRef.current = sheetHeight;
+  const inset = useCallback((full: boolean) => panelInset(full, sheetRef.current), []);
   // Everything on once the topic list is known.
   useEffect(() => {
     if (data) setEnabledTopics(new Set(data.topics.map((t) => t.id)));
@@ -153,7 +178,7 @@ export default function GraphPage() {
     // cost of a worker, a physics dependency in the bundle and a hot CPU on a
     // phone. Nodes are fixed; the camera is what moves.
     const renderer = new GraphRenderer(canvas, data, readPalette(data.topics), {
-      onHover: setHovered,
+      onHover: (node) => hoverRef.current(node),
       onSelect: (node) =>
         navRef.current(`/graph/${node.slug}`, {
           state: openTitleRef.current ? { fromTitle: openTitleRef.current } : undefined,
@@ -163,8 +188,8 @@ export default function GraphPage() {
 
     // The landing camera. Set here rather than left to the constructor's fit()
     // so it uses the same framing "Start here" does, panel space included.
-    renderer.setViewInset(panelInset(false));
-    renderer.surveyFrame(panelInset(false));
+    renderer.setViewInset(inset(false));
+    renderer.surveyFrame(inset(false));
 
     // Deliberately only resize and redraw: re-framing here would throw away a
     // pan or zoom the reader had made, and the whole point of the camera rules
@@ -180,7 +205,7 @@ export default function GraphPage() {
       renderer.dispose();
       rendererRef.current = null;
     };
-  }, [data]);
+  }, [data, inset]);
 
   // Re-read the palette on theme change. The canvas can't inherit CSS
   // variables, so this is what makes the graph re-skin with the rest of the site.
@@ -193,11 +218,22 @@ export default function GraphPage() {
     rendererRef.current?.setSearchMatches(ids);
   }, []);
 
+  /* Back to the landing view: the note closed, the lit neighbourhood dropped,
+     the camera re-framed. Reached from the menu and from the panel's own ✕,
+     which is the same request made from the other end. Full screen goes with
+     it — it's part of the view being reset, and leaving it set would open the
+     next note full screen against a camera framed for a rail. */
   const handleReset = useCallback(() => {
-    rendererRef.current?.surveyFrame(panelInset(false));
+    setFullscreen(false);
+    setSheetHeight(null);
+    // Ordering: the frame has to be computed against the height the sheet is
+    // going back to, not the one it is leaving, so clear it first — `inset`
+    // reads the ref, which the line above has already updated.
+    sheetRef.current = null;
+    rendererRef.current?.surveyFrame(inset(false));
     setLastFocusId(null);
     navigate('/graph');
-  }, [navigate]);
+  }, [inset, navigate]);
 
   useEffect(() => {
     // null means "no topic filter", which skips the per-node check on every draw.
@@ -212,6 +248,12 @@ export default function GraphPage() {
     rendererRef.current?.setLabelMode(labelMode);
   }, [labelMode, data]);
 
+  // A newly opened note arrives expanded, whichever way it was opened — a node
+  // on the canvas, a wikilink inside another note, or the back button.
+  useEffect(() => {
+    setCollapsed(false);
+  }, [openNote]);
+
   // Frame the open note, including on a cold load of /graph/<slug>. The panel
   // covers a chunk of the canvas, so tell the renderer where it is.
   useEffect(() => {
@@ -221,8 +263,8 @@ export default function GraphPage() {
   // Keep the label bounds in step with the camera's. Both use the panel inset
   // whether or not a note is open, so nothing re-flows when the panel appears.
   useEffect(() => {
-    rendererRef.current?.setViewInset(panelInset(fullscreen));
-  }, [fullscreen, data]);
+    rendererRef.current?.setViewInset(inset(fullscreen));
+  }, [fullscreen, data, sheetHeight, inset]);
 
   useEffect(() => {
     const selected = openNote;
@@ -240,8 +282,8 @@ export default function GraphPage() {
 
     // The same framing the landing view already uses, so opening the index
     // turns the course labels on without moving the camera at all.
-    rendererRef.current?.surveyFrame(panelInset(fullscreen));
-  }, [openNote, fullscreen]);
+    rendererRef.current?.surveyFrame(inset(fullscreen));
+  }, [openNote, fullscreen, inset]);
 
   if (error) {
     return (
@@ -252,13 +294,12 @@ export default function GraphPage() {
     );
   }
 
-  const readout = hovered ?? selected;
-
   return (
     <div
       className={
         `graph-page${openNote ? ' graph-page--reading' : ''}` +
-        `${openNote && fullscreen ? ' graph-page--fullscreen' : ''}`
+        `${openNote && fullscreen ? ' graph-page--fullscreen' : ''}` +
+        `${openNote && collapsed ? ' graph-page--collapsed' : ''}`
       }
     >
       <canvas ref={canvasRef} className="graph-canvas" />
@@ -289,15 +330,7 @@ export default function GraphPage() {
         </div>
       </header>
 
-      {readout && (
-        <aside className="graph-readout">
-          <span className={`graph-readout__kind graph-readout__kind--${readout.kind}`}>
-            {readout.kind === 'note' ? (readout.topic ?? 'note') : readout.kind}
-          </span>
-          <strong>{readout.title}</strong>
-          <span className="graph-readout__meta">{readout.degree} connections</span>
-        </aside>
-      )}
+      <GraphReadout selected={selected} bind={hoverRef} />
 
       {openNote && data && (
         <Suspense fallback={null}>
@@ -305,8 +338,17 @@ export default function GraphPage() {
             slug={openNote.slug}
             data={data}
             fullscreen={fullscreen}
-            onToggleFullscreen={() => setFullscreen((v) => !v)}
-            onClose={() => navigate('/graph')}
+            // Full screen is for reading, which is the one thing a collapsed
+            // panel can't do — so entering it expands.
+            onToggleFullscreen={() => {
+              setFullscreen((v) => !v);
+              setCollapsed(false);
+            }}
+            onReset={handleReset}
+            collapsed={collapsed}
+            onCollapse={setCollapsed}
+            height={sheetHeight}
+            onHeight={setSheetHeight}
           />
         </Suspense>
       )}
@@ -347,5 +389,42 @@ export default function GraphPage() {
         </nav>
       )}
     </div>
+  );
+}
+
+/**
+ * Names the node under the cursor, falling back to the open one.
+ *
+ * Its own component purely so a hover repaints this and nothing else — see the
+ * note on `hoverRef` above. It registers its setter on mount; child effects run
+ * before the parent's, so the renderer is never created before the sink exists.
+ */
+function GraphReadout({
+  selected,
+  bind,
+}: {
+  selected: GraphNode | null;
+  bind: RefObject<(node: GraphNode | null) => void>;
+}) {
+  const [hovered, setHovered] = useState<GraphNode | null>(null);
+
+  useEffect(() => {
+    bind.current = setHovered;
+    return () => {
+      bind.current = () => {};
+    };
+  }, [bind]);
+
+  const readout = hovered ?? selected;
+  if (!readout) return null;
+
+  return (
+    <aside className="graph-readout">
+      <span className={`graph-readout__kind graph-readout__kind--${readout.kind}`}>
+        {readout.kind === 'note' ? (readout.topic ?? 'note') : readout.kind}
+      </span>
+      <strong>{readout.title}</strong>
+      <span className="graph-readout__meta">{readout.degree} connections</span>
+    </aside>
   );
 }

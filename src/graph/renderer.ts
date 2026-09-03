@@ -61,6 +61,15 @@ export class GraphRenderer {
   private hovered: GraphNode | null = null;
   private selected: GraphNode | null = null;
   /**
+   * Whether the index note has been opened. The "Start here" wording is an
+   * invitation, and an invitation that has been taken has done its job — from
+   * then on the node names itself, so the label matches the note the reader
+   * just read. It does not go back: reverting to "Start here" the moment they
+   * open something else would make the biggest label on the canvas flicker
+   * between two words as they browse.
+   */
+  private indexOpened = false;
+  /**
    * Chrome covering the canvas — the reading panel. Labels are kept inside what
    * this leaves, so none is drawn off the edge or behind the panel.
    */
@@ -82,6 +91,16 @@ export class GraphRenderer {
   private raf = 0;
   private frameQueued = false;
   private disposed = false;
+
+  /** The cached scene — see `scene()`. Held as a bitmap so a hover is a blit. */
+  private sceneCanvas: HTMLCanvasElement | null = null;
+  private sceneCtx: CanvasRenderingContext2D | null = null;
+  private sceneKey = '';
+  /* Bumped by the three things that change the scene without changing the
+     camera. The selection is keyed on directly, by node id. */
+  private filterVersion = 0;
+  private paletteVersion = 0;
+  private searchVersion = 0;
 
   // Pointer state
   private pointers = new Map<number, { x: number; y: number }>();
@@ -141,6 +160,10 @@ export class GraphRenderer {
     c.removeEventListener('pointercancel', this.onPointerUp);
     c.removeEventListener('pointerleave', this.onPointerLeave);
     c.removeEventListener('wheel', this.onWheel);
+    // A viewport-sized bitmap at dpr 2 is tens of megabytes; don't leave it
+    // pinned by the renderer after the page is gone.
+    this.sceneCanvas = null;
+    this.sceneCtx = null;
   }
 
   resize() {
@@ -155,6 +178,7 @@ export class GraphRenderer {
 
   setPalette(palette: GraphPalette) {
     this.palette = palette;
+    this.paletteVersion++;
     // Painted synchronously rather than queued: a theme swap runs inside
     // startViewTransition, which snapshots the canvas as it is. One frame late
     // and the reveal cross-fades to the old colors.
@@ -275,10 +299,15 @@ export class GraphRenderer {
    * canvas, so the fit is against what the reader can actually see.
    *
    * `padding` has to clear the *labels*, not just the course discs. Every course
-   * is named in this view and the outer ones carry their names further out
-   * still, so a fit tight enough for the nodes pushes that band off the edge.
+   * is named in this view, and a name is wider than the disc it belongs to.
+   *
+   * 60, down from the 110 the outward labels needed: labels now hang straight
+   * down, so the band around the ring only has to hold half a name either side
+   * rather than a whole one stepped out along the ray. The looser fit is worth
+   * having — it spreads the courses further apart on screen, which is what
+   * gives their labels room to sit tight under them.
    */
-  courseFitZoom(inset: { right?: number; bottom?: number } = {}, padding = 110) {
+  courseFitZoom(inset: { right?: number; bottom?: number } = {}, padding = 60) {
     const idx = this.data.nodes[this.data.indexId];
     let dx = 0;
     let dy = 0;
@@ -445,6 +474,7 @@ export class GraphRenderer {
   setFilter(topics: Set<string> | null, showCourses: boolean) {
     this.topicFilter = topics;
     this.showCourses = showCourses;
+    this.filterVersion++;
     this.invalidate();
   }
 
@@ -471,6 +501,7 @@ export class GraphRenderer {
    */
   setSearchMatches(ids: Set<number> | null) {
     this.searchMatches = ids && ids.size ? ids : null;
+    this.searchVersion++;
     this.invalidate();
   }
 
@@ -484,6 +515,9 @@ export class GraphRenderer {
   setSelected(node: GraphNode | null) {
     if (node === this.selected) return;
     this.selected = node;
+    // Set here rather than in the click handler so a cold load of the index's
+    // own URL counts too — that reader has the note open just the same.
+    if (node?.kind === 'index') this.indexOpened = true;
     this.recomputeHighlight();
   }
 
@@ -539,8 +573,83 @@ export class GraphRenderer {
     });
   }
 
-  draw() {
-    const { ctx, palette } = this;
+  /** The world rect currently on screen, with a margin so a node straddling
+      the edge still draws. */
+  private viewRect() {
+    return {
+      x0: -this.tx / this.k - 40,
+      y0: -this.ty / this.k - 40,
+      x1: (this.width - this.tx) / this.k + 40,
+      y1: (this.height - this.ty) / this.k + 40,
+    };
+  }
+
+  private isVisible(n: GraphNode, view: ReturnType<GraphRenderer['viewRect']>) {
+    return (
+      this.shown(n) && n.x >= view.x0 && n.x <= view.x1 && n.y >= view.y0 && n.y <= view.y1
+    );
+  }
+
+  /** The ring that marks a node out — open, matched, or under the cursor. */
+  private ring(ctx: CanvasRenderingContext2D, n: GraphNode, width: number) {
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, this.radius(n) + 6 / this.k, 0, Math.PI * 2);
+    ctx.strokeStyle = this.palette.linkHighlight;
+    ctx.lineWidth = width / this.k;
+    ctx.stroke();
+  }
+
+  /**
+   * Everything that doesn't move with the cursor, as a bitmap.
+   *
+   * 13.7k links and ~950 discs cost about 10ms a frame between them, and every
+   * pixel of it is identical from one frame to the next unless the camera, the
+   * filter, the palette or the selection changed. Hover changes none of those —
+   * it adds one ring — so re-drawing the lot on every mouse move was paying the
+   * whole frame to move a circle. Cached here and blitted, a hover costs a
+   * `drawImage`, the ring, and the labels.
+   *
+   * Rebuilt at device resolution under the same transform the visible canvas
+   * uses, so the blit is a 1:1 copy with no resampling, and it carries its own
+   * background so it lands opaque.
+   */
+  private scene() {
+    const pw = Math.max(1, Math.round(this.width * this.dpr));
+    const ph = Math.max(1, Math.round(this.height * this.dpr));
+    const key = [
+      pw,
+      ph,
+      this.k,
+      this.tx,
+      this.ty,
+      this.filterVersion,
+      this.paletteVersion,
+      this.searchVersion,
+      this.selected?.id ?? -1,
+    ].join('|');
+
+    let c = this.sceneCanvas;
+    let m = this.sceneCtx;
+    if (!c || !m) {
+      c = document.createElement('canvas');
+      m = c.getContext('2d');
+      if (!m) throw new Error('2D canvas context unavailable');
+      this.sceneCanvas = c;
+      this.sceneCtx = m;
+    } else if (this.sceneKey === key) {
+      return c;
+    }
+
+    // Sizing a canvas clears it; the transform only needs resetting on the
+    // path where it isn't resized.
+    if (c.width !== pw || c.height !== ph) {
+      c.width = pw;
+      c.height = ph;
+    } else {
+      m.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    const palette = this.palette;
     // Only selection dims the graph. Hover is a readout, not a state change.
     const focus = this.selected;
     const hasFocus = focus !== null;
@@ -548,113 +657,120 @@ export class GraphRenderer {
     const lit = this.searchMatches ?? (hasFocus ? this.highlight : null);
     const dimming = lit !== null;
 
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.fillStyle = palette.bg;
-    ctx.fillRect(0, 0, this.width, this.height);
-    ctx.transform(this.k, 0, 0, this.k, this.tx, this.ty);
+    m.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    m.fillStyle = palette.bg;
+    m.fillRect(0, 0, this.width, this.height);
+    m.transform(this.k, 0, 0, this.k, this.tx, this.ty);
 
-    const edges = this.data.edges;
-    const nodes = this.data.nodes;
-
-    // Cull to the visible world rect, with a margin so nodes straddling the
-    // edge still draw.
-    const view = {
-      x0: -this.tx / this.k - 40,
-      y0: -this.ty / this.k - 40,
-      x1: (this.width - this.tx) / this.k + 40,
-      y1: (this.height - this.ty) / this.k + 40,
-    };
+    const { edges, nodes } = this.data;
+    const view = this.viewRect();
     const onScreen = (n: GraphNode) =>
       n.x >= view.x0 && n.x <= view.x1 && n.y >= view.y0 && n.y <= view.y1;
-    const visible = (n: GraphNode) => this.shown(n) && onScreen(n);
+    const visible = (n: GraphNode) => this.isVisible(n, view);
 
     // --- links: one path, one stroke -------------------------------------
     // Every link shares a style, so the whole mesh is a single draw call. This
     // is why "thin and transparent unless highlighted" is cheap rather than
     // expensive: only the highlighted subset needs a second pass.
-    ctx.lineWidth = Math.min(1.2 / this.k, 1.4);
-    ctx.strokeStyle = palette.link;
+    m.lineWidth = Math.min(1.2 / this.k, 1.4);
+    m.strokeStyle = palette.link;
     // Zoomed out, 6.4k links overlap into a fog that swallows the nodes sitting
     // in it. Fading the mesh as k shrinks lets the nodes come forward; zoomed
     // in, where links are individually legible and useful, they return to full.
     const linkFog = Math.max(0.35, Math.min(1, this.k / 1.2));
-    ctx.globalAlpha = (dimming ? 0.45 : 1) * linkFog;
-    ctx.beginPath();
+    m.globalAlpha = (dimming ? 0.45 : 1) * linkFog;
+    m.beginPath();
     for (let i = 0; i < edges.length; i += 2) {
       const a = nodes[edges[i]];
       const b = nodes[edges[i + 1]];
       // A link needs both ends present, or it dangles into empty space.
       if (!this.shown(a) || !this.shown(b)) continue;
       if (!onScreen(a) && !onScreen(b)) continue;
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
+      m.moveTo(a.x, a.y);
+      m.lineTo(b.x, b.y);
     }
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+    m.stroke();
+    m.globalAlpha = 1;
 
     // --- highlighted links ------------------------------------------------
     // Suppressed while searching: the search is about where matches are, not
     // about one node's neighbourhood.
     if (hasFocus && !this.searchMatches) {
-      ctx.beginPath();
+      m.beginPath();
       const id = focus.id;
       const { offsets, neighbours } = this.adjacency;
       for (let i = offsets[id]; i < offsets[id + 1]; i++) {
         const b = nodes[neighbours[i]];
         if (!this.shown(b)) continue;
-        ctx.moveTo(focus.x, focus.y);
-        ctx.lineTo(b.x, b.y);
+        m.moveTo(focus.x, focus.y);
+        m.lineTo(b.x, b.y);
       }
-      ctx.strokeStyle = palette.linkHighlight;
-      ctx.lineWidth = Math.min(2 / this.k, 2.4);
-      ctx.stroke();
+      m.strokeStyle = palette.linkHighlight;
+      m.lineWidth = Math.min(2 / this.k, 2.4);
+      m.stroke();
     }
 
     // --- nodes ------------------------------------------------------------
     const strokeW = Math.min(1.4 / this.k, 1.6);
     const drawNode = (n: GraphNode) => {
       const dim = dimming && !lit.has(n.id);
-      ctx.globalAlpha = dim ? 0.32 : 1;
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, this.radius(n), 0, Math.PI * 2);
-      ctx.fillStyle = this.colorOf(n);
-      ctx.fill();
+      m.globalAlpha = dim ? 0.32 : 1;
+      m.beginPath();
+      m.arc(n.x, n.y, this.radius(n), 0, Math.PI * 2);
+      m.fillStyle = this.colorOf(n);
+      m.fill();
       // Ring in the background color so adjacent nodes stay countable.
-      ctx.lineWidth = strokeW;
-      ctx.strokeStyle = palette.bg;
-      ctx.stroke();
+      m.lineWidth = strokeW;
+      m.strokeStyle = palette.bg;
+      m.stroke();
     };
 
     for (const n of nodes) if (n.kind === 'note' && visible(n)) drawNode(n);
     for (const n of nodes) if (n.kind === 'course' && visible(n)) drawNode(n);
     const idx = nodes[this.data.indexId];
     if (visible(idx)) drawNode(idx);
-    ctx.globalAlpha = 1;
+    m.globalAlpha = 1;
 
     // Ring the open note, so the panel and the graph agree on what you're
     // looking at.
-    const ring = (n: GraphNode, width: number) => {
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, this.radius(n) + 6 / this.k, 0, Math.PI * 2);
-      ctx.strokeStyle = palette.linkHighlight;
-      ctx.lineWidth = width / this.k;
-      ctx.stroke();
-    };
-    if (this.selected) ring(this.selected, 2);
+    if (this.selected) this.ring(m, this.selected, 2);
 
     if (this.searchMatches) {
       for (const id of this.searchMatches) {
         const n = nodes[id];
-        if (visible(n)) ring(n, 1.5);
+        if (visible(n)) this.ring(m, n, 1.5);
       }
     }
+
+    this.sceneKey = key;
+    return c;
+  }
+
+  draw() {
+    const { ctx, palette } = this;
+    const nodes = this.data.nodes;
+    const idx = nodes[this.data.indexId];
+    const focus = this.selected;
+    const hasFocus = focus !== null;
+
+    const view = this.viewRect();
+    const visible = (n: GraphNode) => this.isVisible(n, view);
+
+    // Links, discs and the rings that mark the open note and the search hits
+    // all come off the cached bitmap in one copy — see `scene()`. Only the
+    // hover ring and the labels are drawn per frame.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(this.scene(), 0, 0);
+
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.transform(this.k, 0, 0, this.k, this.tx, this.ty);
 
     // Ring whatever is under the cursor too. The pick radius is deliberately
     // forgiving, so in a dense cluster the node you get is often not the one
     // you think you're pointing at — this shows which one you'd actually open.
     if (this.hovered && this.hovered !== this.selected && visible(this.hovered)) {
       ctx.globalAlpha = 0.75;
-      ring(this.hovered, 1.5);
+      this.ring(ctx, this.hovered, 1.5);
       ctx.globalAlpha = 1;
     }
 
@@ -677,6 +793,12 @@ export class GraphRenderer {
     ctx.globalAlpha = 1;
 
     const placed: { x0: number; y0: number; x1: number; y1: number }[] = [];
+    /* One name per node. The passes below overlap on purpose — the selected
+       node is labelled by its own pass and is usually a course or a lit
+       neighbour as well — and without this the second pass, finding its own
+       first slot taken, would drop the same name a rung lower and draw it
+       twice. */
+    const named = new Set<number>();
     /** Breathing room between neighbouring labels, in screen pixels. */
     const GAP = 5;
     /** The part of the canvas the reader can actually see, and its margin. */
@@ -684,25 +806,65 @@ export class GraphRenderer {
     const visH = this.height - this.viewInset.bottom;
     const EDGE = 6;
 
-    /* Where a course label may go, searched in order: out along the ray from
-       the index, and at each distance a little way around it.
+    /* Every label hangs straight down from the node it names — same x, further
+       down when it has to be. Labels used to step outward along the ray from
+       the index instead, which seated all thirty-two but put most of them on
+       top of another disc: at the survey zoom 23 of 32 covered a course. A name
+       sitting on a node that isn't its own is worse than a name a little way
+       off, and the varying bearings read as arbitrary.
 
-       Course names are long and the courses sit on a spiral, so at a zoom that
-       keeps every one of them on screen there is roughly 3000px of ring to hold
-       4200px of text. Placing each label directly under its node dropped a
-       third of them to collisions — a named graph with a dozen anonymous grey
-       discs left in it. Stepping outward into the empty space beyond the
-       spiral, and swinging a few degrees along the ring when straight out is
-       taken, seats all thirty-two with none overlapping down to 1280x800. A
-       leader line keeps a label that moved attached to the node it names.
+       So: one direction, and the ladder only decides how far. Rungs are screen
+       pixels below the node's edge, smallest first, so a label drops only as
+       far as it must to clear the labels already placed and the hub discs. A
+       leader line keeps a label that had to drop attached to its node.
 
-       Distances are screen pixels beyond the node's own edge, swings are
-       radians; both smallest-first, so a label only moves as far as it must. */
-    const LADDER = [4, 20, 38, 58, 80, 104, 130, 158, 188, 220];
-    const DEG = Math.PI / 180;
-    const SWINGS = [0, 7 * DEG, -7 * DEG, 15 * DEG, -15 * DEG];
+       Course names are long and the ring is small at the survey zoom, so a
+       handful still find no clear air, and those go unlabelled rather than
+       taking a slot that clips something — a label that has to be untangled
+       from its neighbour is worse than a disc you zoom in on. Against the
+       shipped layout that leaves 3 of 32 unnamed at 1440x900 and 2 at
+       1920x1080, all of them named again a little way into the zoom, and all 32
+       listed in the panel throughout. */
+    const LADDER = [4, 22, 40];
+    /* Sideways, only once every rung at that depth is taken. Searched
+       drop-major and centred-first, so a label leaves the middle of its node
+       only after the depths above have failed, and moves the smaller distance
+       when it does. The cap is what keeps a label readable as belonging to the
+       node above it: 60px is about half a name, so the disc still sits over the
+       text that names it. */
+    /* The last two are a long way sideways, and the cost ranking is what makes
+       them safe to offer: at 1.5x weight they score below every other slot, so
+       a label reaches that far only when the alternative is not being drawn. */
+    const NUDGES = [0, -30, 30, -60, 60, -95, 95];
+    /* Above the node, tried as part of one ranked search rather than as a second
+       pass. Every slot is scored by how far it moves the label and the cheapest
+       feasible one wins, so a label goes up only to sit *closer* than it could
+       below — 4px above beats 40px below, and beats sliding 60px sideways to
+       stay below, which was the ordering bug that had names veering off to one
+       side while clear air sat directly over the node.
+
+       Sideways counts for more than down, because an offset label has to be
+       traced back along its leader while a lower one is still in its node's
+       column. Above carries a small constant so below wins a tie. */
+    const SIDES = ['below', 'above'] as const;
+    const LATERAL_COST = 1.5;
+    const ABOVE_COST = 6;
+    /* Notes stay centred, below, and give way instead — there can be thirty of
+       them lit at once, and thirty scattered labels is a thicket. */
+    const NOTE_LADDER = [4, 20, 36];
+    const NOTE_NUDGES = [0];
+    /** What a label must not cover: the discs big enough to be aimed at. */
+    const hubs = this.data.nodes
+      .filter((n) => (n.kind === 'course' || n.kind === 'index') && visible(n))
+      .map((n) => ({
+        id: n.id,
+        cx: n.x * this.k + this.tx,
+        cy: n.y * this.k + this.ty,
+        r: this.radius(n) * this.k,
+      }));
 
     const label = (n: GraphNode, size: number, force = false, bold = false) => {
+      if (named.has(n.id)) return;
       // The index is the way in, so it says so rather than naming itself. Its
       // real title still shows in the readout and on the note it opens. Size is
       // fixed here rather than by the caller, so it doesn't shrink the moment
@@ -710,9 +872,10 @@ export class GraphRenderer {
       const isIndex = n.kind === 'index';
       // "Start here" is an invitation to explore, which is the desktop's job.
       // A phone navigates through the pages, so there the node is just labelled
-      // for what it is — and at a size that doesn't span the screen.
+      // for what it is — and at a size that doesn't span the screen. Once the
+      // invitation has been taken it reads as "Index" everywhere.
       const phone = this.width < NARROW;
-      const text = isIndex ? (phone ? 'Index' : 'Start here') : n.title;
+      const text = isIndex ? (phone || this.indexOpened ? 'Index' : 'Start here') : n.title;
       if (isIndex) {
         size = phone ? 15 : 21;
         bold = true;
@@ -727,92 +890,89 @@ export class GraphRenderer {
       const padX = 7;
       const padY = 4;
 
-      // Courses get the outward ladder; everything else sits under its node.
-      const idx = this.data.nodes[this.data.indexId];
-      const dx = n.x - idx.x;
-      const dy = n.y - idx.y;
-      const d = Math.hypot(dx, dy);
-      const radial = n.kind === 'course' && d > 1e-6;
+      // Courses may drop a long way to find clear air; notes give way instead.
+      const roomy = n.kind === 'course';
 
       const hits = (b: { x0: number; y0: number; x1: number; y1: number }) =>
         placed.some(
           (p) => b.x0 - GAP < p.x1 && b.x1 + GAP > p.x0 && b.y0 - GAP < p.y1 && b.y1 + GAP > p.y0,
         );
 
-      /** Total area `b` would overlap, used to pick the least-bad fallback. */
-      const overlap = (b: { x0: number; y0: number; x1: number; y1: number }) =>
-        placed.reduce((sum, p) => {
-          const ox = Math.min(b.x1, p.x1) - Math.max(b.x0, p.x0);
-          const oy = Math.min(b.y1, p.y1) - Math.max(b.y0, p.y0);
-          return sum + (ox > 0 && oy > 0 ? ox * oy : 0);
-        }, 0);
+      /** Whether `b` would sit over a hub other than the one it names. Nearest
+          point on the box to the centre, against the radius — the discs are
+          circles and testing their bounding boxes rejected clear slots. */
+      const coversHub = (b: { x0: number; y0: number; x1: number; y1: number }) =>
+        hubs.some((h) => {
+          if (h.id === n.id) return false;
+          const px = Math.max(b.x0, Math.min(h.cx, b.x1));
+          const py = Math.max(b.y0, Math.min(h.cy, b.y1));
+          return Math.hypot(h.cx - px, h.cy - py) < h.r;
+        });
 
       type Box = { x0: number; y0: number; x1: number; y1: number };
       let box: Box | null = null;
       let sx = 0;
       let sy = 0;
       let stepped = false;
-      let fallback: { b: Box; cx: number; cy: number; moved: boolean } | null = null;
-      let fallbackArea = Infinity;
+      let above = false;
 
-      const rungs = radial ? LADDER : [4];
-      const swings = radial ? SWINGS : [0];
-      outer: for (const [step, extra] of rungs.entries()) {
-        for (const swing of swings) {
-          // Rotating the outward ray lets a blocked label slide along the ring
-          // rather than only further out, which is what closes the last few
-          // collisions in the crowded inner winding.
-          const cos = Math.cos(swing);
-          const sin = Math.sin(swing);
-          const ux = (dx * cos - dy * sin) / d;
-          const uy = (dx * sin + dy * cos) / d;
-          let cx = radial ? nx + ux * (edge + extra) : nx;
-          let cy = radial ? ny + uy * (edge + extra) - size / 2 : ny + edge + 4;
-
-          // Slide the label back inside the visible region rather than letting
-          // it hang off the edge or slip behind the panel. Long names on the
-          // outer courses overflow otherwise — "Introduction to Computer
-          // Science" ran 62px past the left edge at 1440x900. Sliding beats
-          // dropping: the leader line still ties it to its node, so a label
-          // that had to move is merely offset, not lost.
-          const halfW = w / 2 + padX;
-          if (halfW * 2 > visW - EDGE * 2 || size + padY * 2 > visH - EDGE * 2) continue;
-          cx = Math.min(Math.max(cx, EDGE + halfW), visW - EDGE - halfW);
-          cy = Math.min(Math.max(cy, EDGE + padY), visH - EDGE - size - padY);
-
-          const b: Box = {
-            x0: cx - halfW,
-            y0: cy - padY,
-            x1: cx + halfW,
-            y1: cy + size + padY,
-          };
-          const moved = step > 0 || swing !== 0;
-          if (force || !hits(b)) {
-            box = b;
-            sx = cx;
-            sy = cy;
-            stepped = moved;
-            break outer;
-          }
-          // On a small enough viewport every slot can be taken. A course is
-          // never left anonymous — a name clipping another still says what the
-          // node is, a bare grey disc says nothing — so keep the cheapest slot
-          // seen and fall back to it. Notes keep the old behaviour and give way.
-          const a = overlap(b);
-          if (radial && a < fallbackArea) {
-            fallbackArea = a;
-            fallback = { b, cx, cy, moved };
+      const rungs = roomy ? LADDER : NOTE_LADDER;
+      const nudges = roomy ? NUDGES : NOTE_NUDGES;
+      const sides = roomy ? SIDES : ([SIDES[0]] as const);
+      const slots = [];
+      for (const [step, drop] of rungs.entries()) {
+        for (const side of sides) {
+          for (const nudge of nudges) {
+            slots.push({
+              step,
+              drop,
+              side,
+              nudge,
+              cost:
+                drop + Math.abs(nudge) * LATERAL_COST + (side === 'above' ? ABOVE_COST : 0),
+            });
           }
         }
       }
-      if (!box && fallback) {
-        box = fallback.b;
-        sx = fallback.cx;
-        sy = fallback.cy;
-        stepped = fallback.moved;
+      slots.sort((a, b) => a.cost - b.cost);
+
+      for (const { step, drop, side, nudge } of slots) {
+        let cx = nx + nudge;
+        // `cy` is the text's top edge, so an upward slot has to clear its own
+        // height and padding as well as the gap.
+        let cy = side === 'below' ? ny + edge + drop : ny - edge - drop - size - padY * 2;
+
+        // Slide the label back inside the visible region rather than letting it
+        // hang off the edge or slip behind the panel. Long names on the outer
+        // courses overflow otherwise — "Introduction to Computer Science" ran
+        // 62px past the left edge at 1440x900. Sliding beats dropping: the
+        // leader line still ties it to its node, so a label that had to move is
+        // merely offset, not lost.
+        const halfW = w / 2 + padX;
+        if (halfW * 2 > visW - EDGE * 2 || size + padY * 2 > visH - EDGE * 2) continue;
+        cx = Math.min(Math.max(cx, EDGE + halfW), visW - EDGE - halfW);
+        cy = Math.min(Math.max(cy, EDGE + padY), visH - EDGE - size - padY);
+
+        const b: Box = { x0: cx - halfW, y0: cy - padY, x1: cx + halfW, y1: cy + size + padY };
+        if (force || (!hits(b) && !coversHub(b))) {
+          box = b;
+          sx = cx;
+          sy = cy;
+          // A leader is what makes a moved label readable. Worth drawing for a
+          // sideways nudge even on the first rung, where the label is still
+          // tight against the node but no longer under its middle — and always
+          // for one that went above, which is against the rule the rest of the
+          // canvas has taught the eye.
+          stepped = step > 0 || side === 'above' || Math.abs(cx - nx) > 1;
+          above = side === 'above';
+          break;
+        }
       }
+      // Nothing clear: give way. The name is back as soon as the zoom opens
+      // room, and the panel lists every course meanwhile.
       if (!box) return;
       placed.push(box);
+      named.add(n.id);
 
       // A label that had to step outward is no longer touching its node, so it
       // gets a hairline back to it. Drawn under the plate, so the plate covers
@@ -822,8 +982,8 @@ export class GraphRenderer {
         ctx.strokeStyle = palette.label;
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(nx + (dx / d) * edge, ny + (dy / d) * edge);
-        ctx.lineTo(sx, sy + size / 2);
+        ctx.moveTo(nx, ny + (above ? -edge : edge));
+        ctx.lineTo(sx, above ? box.y1 : box.y0);
         ctx.stroke();
         ctx.globalAlpha = 1;
       }

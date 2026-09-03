@@ -100,3 +100,13 @@ export function ChevronIcon() {
     </svg>
   );
 }
+
+export function ChevronDownIcon() {
+  // Points down for "collapse"; the note sheet rotates it 180° to mean
+  // "expand", so one glyph covers both halves of the toggle.
+  return (
+    <svg {...stroke}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}

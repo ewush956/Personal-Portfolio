@@ -186,6 +186,22 @@ URL.
 constructor parameter properties and enums; `verbatimModuleSyntax` requires
 `import type`; `noUnusedLocals` fails the build on a stray constant.
 
+**The scene is a cached bitmap, so anything drawn into it has to be keyed.**
+`scene()` in `src/graph/renderer.ts` strokes the link mesh, the discs and the
+selection and search rings into an offscreen canvas, and `draw()` blits that.
+13.7k links and ~950 discs cost about 10ms a frame between them and none of it
+changes when the cursor moves — a hover adds one ring — so repainting the lot
+for it was most of the hover lag. The bitmap is rebuilt only when its key
+changes: canvas size, camera, `filterVersion`, `paletteVersion`,
+`searchVersion`, and the selected node's id. Draw a new piece of state inside
+`scene()` without adding it to that key and it paints once and then sits stale
+until the camera moves. Anything that follows the *cursor* belongs in `draw()`
+after the blit, where the hover ring and the labels are.
+
+The same rule holds on the React side: hover lives in `GraphReadout`, not in
+`GraphPage`. Hoisting it back up re-renders the search box, the legend, the
+course list and the open note's rendered markdown on every mouse move.
+
 **The canvas can't read CSS variables.** `src/graph/palette.ts` resolves them
 through a hidden probe element, the same trick `getThemeAssetUrls()` uses in
 `src/themes/preloadTheme.ts`. On a theme change the repaint must be synchronous
