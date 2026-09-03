@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useActiveSection } from './hooks/useActiveSection';
 import { useRailCollapsed } from './hooks/useRailCollapsed';
+import { useHashScroll } from './hooks/useHashScroll';
 import { Backgrounds } from './components/Backgrounds';
 import { NavRail } from './components/NavRail';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
@@ -12,6 +13,10 @@ import { Footer } from './components/Footer';
 
 export default function App() {
   const [collapsed, toggleRail] = useRailCollapsed();
+
+  // Arriving at /#education from the graph is a real page load, and the
+  // browser's own hash scroll runs before React has rendered anything.
+  useHashScroll();
 
   // Single scroll-spy observer, shared by the backgrounds and the nav rail.
   const active = useActiveSection(['top', 'education', 'projects', 'contact'], 'top');
