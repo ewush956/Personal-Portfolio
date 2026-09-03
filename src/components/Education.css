@@ -49,16 +49,26 @@
   font-weight: var(--font-weight-display);
   text-transform: var(--heading-transform);
   letter-spacing: var(--heading-tracking);
-  /* text-2xl wraps to three lines once a theme adds uppercase and wide
-     tracking (Cinzel on Sleep Token, Press Start on Doom). */
-  font-size: var(--text-xl);
+  /* --text-lg because that is what a card title is everywhere else on the
+     site: both hero cards and every project card. This was the one heading
+     at --text-xl, and against 1.05rem body copy it read as a section title
+     that had wandered into a card. Size is not what makes this card the
+     statement — being the full width with the graph beside it is.
+     (It also stops the wrap: --text-2xl ran to three lines once a theme
+     added uppercase and wide tracking, Cinzel on Sleep Token and Press Start
+     on Doom, and --text-xl still ran to two.) */
+  font-size: var(--text-lg);
   color: var(--color-heading);
   text-shadow: var(--heading-glow);
 }
 
 .edu-card__school {
   margin: 0;
-  font-size: var(--text-lg);
+  /* One step under the degree, as the concentration is one step under this.
+     Three sizes for three levels; the degree keeps the display face, the
+     tracking and the glow, so it still leads without being the biggest thing
+     in the section. */
+  font-size: var(--text-base);
   /* Most of the space under this line was its own leading, not the gap: at the
      body's 1.6 and this size that is ~0.4rem of air below the baseline against
      a 0.25rem gap. It's a single line of a heading group, so it doesn't need
@@ -69,7 +79,7 @@
 
 .edu-card__focus {
   margin: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--color-muted);
 }
 
@@ -109,7 +119,10 @@
 
 .edu-cta__label {
   font-family: var(--font-display);
-  font-size: var(--text-lg);
+  /* The padding is what gives this button its presence. At --text-lg it also
+     matched the degree above it, so the card had two headline-sized lines
+     competing. */
+  font-size: var(--text-base);
   line-height: 1.15;
   text-transform: var(--heading-transform);
   letter-spacing: var(--heading-tracking);

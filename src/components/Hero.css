@@ -42,14 +42,26 @@
      the fixed-width photo — keeps the photo identical across all themes. */
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--space-3);
-  row-gap: var(--space-2);
+  /* Matches .hero__skills' flex gap: label → heading → body, one rhythm across
+     both cards. */
+  row-gap: var(--space-3);
   align-items: start;
+}
+
+/* Both hero cards set their internal rhythm with their container's gap, so the
+   label's own bottom margin doubles it — and it doubled *unevenly*, because
+   only the skills card is a flex column: the about card's label cleared its
+   heading by --space-2 and the skills card's by --space-3 plus the margin
+   again, which is what put the two headings on different lines. The container
+   gap is the single source of the rhythm; the margin goes. */
+.hero__about-label,
+.hero__skills > .card__label {
+  margin-bottom: 0;
 }
 
 .hero__about-label {
   grid-column: 1;
   grid-row: 1;
-  margin-bottom: 0;
 }
 
 .hero__about-heading {
