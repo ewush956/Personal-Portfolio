@@ -4,10 +4,17 @@
   z-index: 40;
   padding-block: var(--space-3);
   background: var(--header-bg);
-  /* No backdrop-filter: blurring this sticky bar forces Chromium to repaint the
-     layer every frame, and during a fast scroll up the compositor can't keep up
-     — the bar lags its top:0 layout position and visibly detaches from the top.
-     The --header-bg colors are opaque enough to read as a header on their own. */
+  /* Same blur as the nav rail (NavRail.css) so the two chrome surfaces read as
+     one system — most obvious on mobile, where the bottom bar and this bar are
+     on screen at once and only one of them frosted the page behind it.
+     This was previously left un-blurred: a blurred sticky bar makes Chromium
+     repaint the layer every frame, and on a fast scroll up the compositor could
+     lag the bar behind its top:0 position so it visibly detached from the top.
+     If that resurfaces, gate the blur to `@media (max-width: 767px)` rather
+     than dropping it — mobile is where the mismatch shows, and the bar is
+     fixed-height and short there. */
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
   border-bottom: 1px solid var(--color-border);
   transition:
     background 0.6s var(--ease),
