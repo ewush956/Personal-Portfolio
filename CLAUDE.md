@@ -127,6 +127,34 @@ height through `onDragHeight`, separate from `onHeight`'s resting one; and
 `GraphPage` throttles that to `DRAG_FRAME_MS` because every camera move
 repaints the cached scene — 13.7k links, on the thread dragging the sheet.
 
+Every phone framing goes through it, the landing view included — `surveyFrame`
+redirects a narrow screen there. Which is why opening the index is not a camera
+move on a phone: the desktop's "Start here" exception re-surveys, and on a
+phone that means re-covering against a band the opening sheet has just taken
+60% of. There the index is a node like any other.
+
+**A phone frames the note it opens, and then holds.** Opening the first note
+from the landing view frames it — the sheet is about to rise over most of the
+screen, so a tap that left the camera alone would put the node behind the thing
+you tapped it to read. Every note opened *after* that leaves the camera exactly
+where it is: the graph above the sheet is the map you are navigating by, and
+re-centring it on each wikilink is what loses your place. `wasReading` is the
+edge that tells the two apart, and a cold load of `/graph/<slug>` counts as an
+opening, which is how a shared link lands on its own note.
+
+Only the reader moves it after that. The re-framing effect is keyed on
+`sheetMove`, a counter that the sheet's own `onHeight`/`onCollapse` handlers
+bump, plus the throttled drag and `handleReset`. It used to be keyed on
+`sheetHeight`, `collapsed` and `legendH` directly, which cannot tell a drag from
+a tap: opening a note expands a collapsed sheet and hides the topic list, so
+every tap looked like the sheet moving. Closing a note frames imperatively —
+the topic list is still `display:none` in that commit, so `handleReset` frames
+against `legendShownRef`, the height the list last had on screen, rather than
+the zero the live measurement reports. That ref is also why the legend's
+`ResizeObserver` frames on its first non-zero measurement with nothing open: on
+a cold load into a note the list is hidden from the load until the reader
+closes it, so the reset reads a zero and the real height arrives a commit later.
+
 **Nothing simulates at runtime.** The layout is solved once, at build time, and
 the shipped coordinates in `graph.json` are final — there is no worker and no
 d3-force in the bundle. Nodes cannot be dragged; the camera is the only thing
@@ -194,6 +222,14 @@ directly over the node — and the ±95 offsets only ever win when the alternati
 is not drawing the label at all. Measured in the browser at the survey zoom: 32
 of 32 named at 1920x1080 and at 1440x900, 28 at 1280x800; at 1920 only three
 labels move at all, and all three go straight up.
+
+A phone takes none of that ladder. It labels the index and the selected node
+and nothing else — a third of the width with the sheet over most of the height
+has no room for thirty-two course names, and navigation there runs through the
+pages rather than the canvas. The index is on that short list because the phone
+lands on the survey view rather than inside the index note, so "Start here" is
+the only thing on the landing screen that says what to do with the graph. It
+still reads at 15px there, against 21 on a desktop.
 
 Labels used to step outward along the ray from the index instead. That seated
 all 32 but put 23 of them on top of another disc at the survey zoom, and the

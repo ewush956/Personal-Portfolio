@@ -290,8 +290,8 @@ export class GraphRenderer {
    */
   surveyFrame(inset: Partial<Inset> = {}) {
     // A phone gets `coverFrame` on the index instead — see there. Landing and
-    // "Start here" still share it, so the camera is just as still there as on
-    // the desktop.
+    // reset still share it, so the camera is just as still there as on the
+    // desktop.
     if (this.narrow) {
       this.coverFrame(this.data.nodes[this.data.indexId], inset);
       return;
@@ -979,12 +979,15 @@ export class GraphRenderer {
       // fixed here rather than by the caller, so it doesn't shrink the moment
       // you hover it and get labelled by a different branch.
       const isIndex = n.kind === 'index';
-      // "Start here" is an invitation to explore, which is the desktop's job.
-      // A phone navigates through the pages, so there the node is just labelled
-      // for what it is — and at a size that doesn't span the screen. Once the
-      // invitation has been taken it reads as "Index" everywhere.
+      // The invitation is worded the same on every width. It used to read
+      // "Index" on a phone, on the grounds that exploring a canvas is a
+      // desktop affordance — but the phone lands on the same survey view now,
+      // and a node labelled for what it *is* rather than for what to do with
+      // it left that view with nothing telling a first visitor where to start.
+      // The size still differs: 21px spans a third of a phone's screen. Once
+      // the invitation has been taken it reads as "Index" everywhere.
       const phone = this.narrow;
-      const text = isIndex ? (phone || this.indexOpened ? 'Index' : 'Start here') : n.title;
+      const text = isIndex ? (this.indexOpened ? 'Index' : 'Start here') : n.title;
       if (isIndex) {
         size = phone ? 15 : 21;
         bold = true;
@@ -1126,14 +1129,19 @@ export class GraphRenderer {
       return;
     }
 
-    // On a phone, the selected node and nothing else.
+    // On a phone, the entry point and the selected node — and nothing else.
     //
     // There is no room for more: a third of the width, and the reading sheet
-    // over most of the height. Even the index's own label goes — navigation
-    // there runs through the pages rather than the canvas, so the graph is an
-    // overview to orient by, not a menu to aim at.
+    // over most of the height, so the course pass below is a wall of
+    // overlapping text there. The index is the exception, and has to be: the
+    // phone lands on the survey view now rather than inside the index note, so
+    // "Start here" is the only thing on that screen that says what to do with
+    // the graph. Nothing else about the phone's labelling changes.
     if (this.narrow) {
-      if (this.selected && visible(this.selected)) label(this.selected, 14, true);
+      if (visible(idx)) label(idx, 15, true, true);
+      if (this.selected && this.selected !== idx && visible(this.selected)) {
+        label(this.selected, 14, true);
+      }
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       return;
     }

@@ -127,32 +127,6 @@ export default function GraphPage() {
     return data.nodes[lastFocusId] ?? null;
   }, [openNote, data, lastFocusId]);
 
-  // On a phone the index opens on arrival.
-  //
-  // The graph is an overview there, not the way you navigate — reading happens
-  // in the sheet, and the sheet starting empty made the whole route look like a
-  // decorative blob you had to guess your way into. Desktop still lands on the
-  // graph itself, where "Start here" is legible and clickable.
-  //
-  // Once only, and via replace, so it doesn't sit in the history and closing
-  // the sheet doesn't immediately reopen it.
-  //
-  // On mount, not on `data`. The index's slug is known at build time, so this
-  // does not need graph.json — and waiting for it made the phone's arrival
-  // lurch. The renderer is built in the same commit the data lands in and
-  // frames itself immediately; with the redirect one commit behind, that first
-  // framing was computed for a page with no note open — the bottom of the band
-  // being the topic list — and the redirect then re-framed it for the sheet, a
-  // different zoom, one commit later. Redirecting first means `slug` is already
-  // set when the data arrives, so the first frame is the final one.
-  const autoOpened = useRef(false);
-  useEffect(() => {
-    if (slug || autoOpened.current) return;
-    if (window.innerWidth > NARROW) return;
-    autoOpened.current = true;
-    navigate(`/graph/${GRAPH_STATS.indexSlug}`, { replace: true });
-  }, [slug, navigate]);
-
   /* Which topics are shown, or null while the reader has not touched the
      filter — which is every topic.
 
@@ -194,6 +168,30 @@ export default function GraphPage() {
      second. */
   const liveSheetRef = useRef<number | null>(null);
 
+  /* Bumped every time the *reader* moves the sheet — a drag come to rest, a
+     collapse, an expand from the header — and by nothing else. It is what the
+     phone's re-framing effect is keyed on; see there for why the sheet's own
+     height and collapsed flag are not enough. A counter rather than a flag so
+     a gesture that lands on the height it started from still frames. */
+  const [sheetMove, setSheetMove] = useState(0);
+  const moveSheet = useCallback(() => setSheetMove((n) => n + 1), []);
+
+  const handleSheetHeight = useCallback(
+    (px: number | null) => {
+      moveSheet();
+      setSheetHeight(px);
+    },
+    [moveSheet],
+  );
+
+  const handleCollapse = useCallback(
+    (next: boolean) => {
+      moveSheet();
+      setCollapsed(next);
+    },
+    [moveSheet],
+  );
+
   /* The shell's top bar is opaque, so the camera has to know how tall it is.
      Measured rather than hard-coded: it holds the search field, the theme
      swatches and the menu, and its height moves with --control-h, the theme's
@@ -213,10 +211,23 @@ export default function GraphPage() {
   const [legendH, setLegendH] = useState(0);
   const legendBoxRef = useRef<HTMLElement>(null);
 
+  /* The height the list had while it was last on screen. The live measurement
+     above drops to zero the moment a note opens, and closing that note has to
+     be framed against the band the list is about to take *back* — which is
+     this, because the reset runs a commit before the list is on screen again
+     to be measured. */
+  const legendShownRef = useRef(0);
+
   /* Whether a note is open, for the inset. A ref because `inset` has to stay
      referentially stable — see the sheet height above. */
   const readingRef = useRef(false);
   readingRef.current = openNote !== null;
+
+  /* What the phone's camera frames on, for the same reason. Mirrored during
+     render rather than in an effect so a drag reads the current node even
+     mid-gesture, without `reframeSheet` having to depend on it. */
+  const selectedRef = useRef<GraphNode | null>(null);
+  selectedRef.current = selected;
 
   const inset = useCallback(
     (full: boolean) =>
@@ -249,26 +260,6 @@ export default function GraphPage() {
     return () => ro.disconnect();
   }, []);
 
-  /* `data` in the deps because the list is not rendered until the graph has
-     loaded, so there is nothing to observe before then. */
-  useEffect(() => {
-    const box = legendBoxRef.current;
-    if (!box) return;
-    const measure = () => {
-      const r = box.getBoundingClientRect();
-      const canvas = canvasRef.current?.getBoundingClientRect();
-      // From the canvas's bottom edge to the list's top, so the gap the list
-      // is floated by counts as covered too — there is nothing usable in it.
-      const h = r.height && canvas ? Math.max(0, canvas.bottom - r.top) : 0;
-      legendRef.current = h;
-      setLegendH(h);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(box);
-    return () => ro.disconnect();
-  }, [data]);
-
   /* Pulling the phone's sheet down closes the view in on whatever is open.
      `coverFrame` does the work — the band gets taller, its long side becomes
      the height, and the course ring is scaled to cover it — so all this has to
@@ -278,7 +269,6 @@ export default function GraphPage() {
 
      Read through refs so the callback is stable, which is what lets the drag
      handler below hold onto it without re-rendering anything. */
-  const selectedRef = useRef<GraphNode | null>(null);
   const reframeSheet = useCallback(() => {
     const renderer = rendererRef.current;
     if (!renderer || window.innerWidth > NARROW) return;
@@ -306,6 +296,37 @@ export default function GraphPage() {
     },
     [reframeSheet],
   );
+
+  /* `data` in the deps because the list is not rendered until the graph has
+     loaded, so there is nothing to observe before then. Declared after
+     `reframeSheet` so it can hold it as a dependency. */
+  useEffect(() => {
+    const box = legendBoxRef.current;
+    if (!box) return;
+    const measure = () => {
+      const r = box.getBoundingClientRect();
+      const canvas = canvasRef.current?.getBoundingClientRect();
+      // From the canvas's bottom edge to the list's top, so the gap the list
+      // is floated by counts as covered too — there is nothing usable in it.
+      const h = r.height && canvas ? Math.max(0, canvas.bottom - r.top) : 0;
+      const unseen = legendShownRef.current === 0;
+      legendRef.current = h;
+      if (h) legendShownRef.current = h;
+      setLegendH(h);
+      /* The one measurement that re-frames, and only on a phone with nothing
+         open. Normally the list is measured before the renderer is built, so
+         the landing camera already knows about it. A cold load of
+         /graph/<slug> is the exception: the list is display:none the whole
+         time the note is up, so it has never had a height, and the reset that
+         closes the note frames against a zero `legendShownRef`. This is that
+         height arriving one commit later. */
+      if (h && unseen && !readingRef.current) reframeSheet();
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [data, reframeSheet]);
 
   const [railCollapsed, toggleRail] = useRailCollapsed();
   const railWidth: CSSProperties = {
@@ -375,6 +396,18 @@ export default function GraphPage() {
 
     // The landing camera. Set here rather than left to the constructor's fit()
     // so it uses the same framing "Start here" does, panel space included.
+    //
+    // The same view on a phone, which it did not used to be: the route
+    // redirected to the index on arrival there, so the sheet was never empty.
+    // Reading is how you navigate on a phone, and a blank sheet made the whole
+    // thing look like a decorative blob you had to guess your way into. But
+    // arriving inside a note hid the two things that say what this page is —
+    // "Start here" on the index, and the topic list along the bottom, both of
+    // them under the open sheet.
+    //
+    // A cold load of /graph/<slug> overwrites this a moment later, from the
+    // effect that frames a note as it opens: `openNote` is already set in this
+    // commit, so that counts as an opening and lands on the note.
     renderer.setViewInset(inset(false));
     renderer.surveyFrame(inset(false));
 
@@ -422,6 +455,13 @@ export default function GraphPage() {
     // going back to, not the one it is leaving, so clear it first — `inset`
     // reads the ref, which the line above has already updated.
     sheetRef.current = null;
+    // Same reasoning for the topic list, from the other direction: it is still
+    // display:none this commit, so its live height is zero and the observer
+    // that puts the real one back does not run until it is on screen. Framing
+    // against zero drew the graph down behind the list it was about to grow.
+    legendRef.current = legendShownRef.current;
+    // Nothing else about the selection moves the camera, so this and the drag
+    // are the only two things that frame a phone.
     rendererRef.current?.surveyFrame(inset(false));
     setLastFocusId(null);
     navigate('/graph');
@@ -446,28 +486,60 @@ export default function GraphPage() {
     setCollapsed(false);
   }, [openNote]);
 
-  // Frame the open note, including on a cold load of /graph/<slug>. The panel
-  // covers a chunk of the canvas, so tell the renderer where it is.
+  // Light the open note's neighbourhood, including on a cold load of
+  // /graph/<slug>. The camera is a separate question — see the effect below.
   useEffect(() => {
-    selectedRef.current = selected;
     rendererRef.current?.setSelected(selected);
   }, [selected]);
 
-  /* The sheet came to rest at a new height: land the camera exactly, whatever
-     the throttled drag left it on. `data` is in the deps because the renderer
-     does not exist until the graph has loaded — without it the first framing
-     after a cold load on a phone would run against a null ref. */
-  /* Re-frame when the phone's chrome moves — the sheet dragged, collapsed, or
-     closed and replaced by the topic list.
-
-     Deliberately NOT keyed on the selection. Opening a node must not move the
-     camera, here as anywhere: the reader's own view is the one that holds, and
-     a graph that recentres on every tap is exactly the lurch that rule exists
-     to stop. `data` is in the deps because the renderer does not exist until
-     the graph has loaded. */
+  /* Opening the *first* note frames it. Opening the ones after it does not.
+   *
+   * The two are different requests. From the landing view the sheet is about
+   * to rise over most of the screen, so a tap that left the camera alone would
+   * put the node you just chose behind the thing you chose it to read; framing
+   * is what hands back a band with that node in the middle of it. Once you are
+   * reading, the graph above the sheet is the map you are navigating by, and
+   * re-centring it on every wikilink is the lurch that loses your place.
+   *
+   * A phone only. The desktop's panel takes the right-hand third rather than
+   * rising over the graph, and its own rule — the index re-surveys, nothing
+   * else moves — is a few lines further down.
+   */
+  const wasReading = useRef(false);
   useEffect(() => {
+    const reading = openNote !== null;
+    const opening = reading && !wasReading.current;
+    wasReading.current = reading;
+    if (!opening || !openNote) return;
+    if (window.innerWidth > NARROW) return;
+    // The sheet arrives expanded whatever it was before (the effect above
+    // queues that), so the frame has to be computed against an open sheet
+    // rather than the collapsed one this commit still reports.
+    collapsedRef.current = false;
+    rendererRef.current?.setViewInset(inset(false));
+    rendererRef.current?.coverFrame(openNote, inset(false));
+  }, [openNote, inset]);
+
+  /* The sheet came to rest at a new height: land the camera exactly, whatever
+     the throttled drag left it on.
+
+     Driven by a counter the sheet's own handlers bump, not by the sheet's
+     height and collapsed flag directly. Those two move for reasons that are
+     nothing to do with the reader — a note opening expands a collapsed sheet,
+     closing one hands the bottom band back to the topic list — and this effect
+     used to be keyed on them, so it could not tell a drag from a tap. Every
+     wikilink followed while reading re-framed the phone's camera and threw
+     away wherever the reader had panned to. The counter only advances on the
+     gesture itself; framing a note as it *opens* is a separate rule, above.
+
+     `liveSheetRef` is already back to null by the time this runs: the panel
+     clears it synchronously at the end of the same handler, and refs are not
+     batched, so `inset` reads the resting height rather than the last frame of
+     the drag. */
+  useEffect(() => {
+    if (!sheetMove) return;
     reframeSheet();
-  }, [sheetHeight, collapsed, legendH, data, reframeSheet]);
+  }, [sheetMove, reframeSheet]);
 
   // Keep the label bounds in step with the camera's. Both use the panel inset
   // whether or not a note is open, so nothing re-flows when the panel appears.
@@ -488,6 +560,16 @@ export default function GraphPage() {
     // the graph stays exactly where it was put. "Start here" is the deliberate
     // exception, because it is a survey rather than a destination.
     if (selected.kind !== 'index') return;
+
+    /* Not on a phone, where it is not the same framing. The exception is
+       allowed on a desktop because the landing camera *is* the survey frame
+       and the reading panel's space is reserved on both views, so opening the
+       index only turns the course labels on. On a phone the sheet takes the
+       bottom 60% as it opens, and re-surveying into the strip that leaves
+       fits the whole course ring into ~135px — below `MIN_K`, which is the
+       blob `coverFrame` exists to avoid. There the index is a node like any
+       other: it lights up, and the camera holds. */
+    if (window.innerWidth <= NARROW) return;
 
     // The same framing the landing view already uses, so opening the index
     // turns the course labels on without moving the camera at all.
@@ -567,9 +649,9 @@ export default function GraphPage() {
             }}
             onReset={handleReset}
             collapsed={collapsed}
-            onCollapse={setCollapsed}
+            onCollapse={handleCollapse}
             height={sheetHeight}
-            onHeight={setSheetHeight}
+            onHeight={handleSheetHeight}
             onDragHeight={handleDragHeight}
           />
         </Suspense>
