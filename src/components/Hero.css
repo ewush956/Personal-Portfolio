@@ -1,6 +1,17 @@
 .hero {
   padding-top: var(--space-6);
   padding-bottom: var(--space-8);
+  /* `#top` is the first section, so the only thing above it is the sticky theme
+     bar — and `scroll-padding-top: 5rem` (base.css), which exists to clear that
+     bar for the sections further down, is *smaller* than the bar's expanded
+     height on a phone. Aligning here the ordinary way therefore landed ~34px
+     down the page: past the bar's condense threshold, so arriving at /#top from
+     the graph condensed the bar, and the ~64px the bar gave up moved this
+     section back to where 0 was correct, expanding it again — a
+     collapse-then-uncollapse flicker on the way home. Cancel the padding
+     instead: the alignment clamps at 0, so an oversized margin simply means
+     "the top of the page", whatever height the bar happens to be. */
+  scroll-margin-top: 100vh;
 }
 
 .hero__eyebrow {

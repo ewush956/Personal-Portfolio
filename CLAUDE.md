@@ -127,6 +127,93 @@ height through `onDragHeight`, separate from `onHeight`'s resting one; and
 `GraphPage` throttles that to `DRAG_FRAME_MS` because every camera move
 repaints the cached scene — 13.7k links, on the thread dragging the sheet.
 
+Every phone framing goes through it, the landing view included — `surveyFrame`
+redirects a narrow screen there. Which is why opening the index is not a camera
+move on a phone: the desktop's "Start here" exception re-surveys, and on a
+phone that means re-covering against a band the opening sheet has just taken
+60% of. There the index is a node like any other.
+
+**A phone frames the note it opens, and pans for the ones after it.** Opening
+the first note from the landing view frames it — `coverFrame`, zoom and all,
+because the sheet is about to rise over most of the screen and the band it is
+fitting into has just changed. `wasReading` is the edge that tells that from
+the notes opened while already reading, and a cold load of `/graph/<slug>`
+counts as an opening, which is how a shared link lands on its own note.
+
+Opening a note *while reading* runs `panIntoView` instead: the zoom never
+moves, and the camera translates toward centring the node, eased over
+`PAN_MS`. How far toward is `centringWeight` — all the way at the spiral's
+centre, none of the way at its rim, linear between, measured from the index and
+scaled by the distance to the outermost node (1322). Centring an outlying node
+points the view at the edge of the graph with empty canvas on three sides and
+the spiral pushed off screen, so it arrives framed and unplaceable; a node near
+the middle has the spiral around it whatever the camera does.
+
+Under that sits a clamp: whatever more it takes to put the node inside the
+band, with `PAN_MARGIN` of clearance. It is a floor, not the rule — it usually
+adds nothing, and when it fires it moves the least that fixes things, so the
+node lands at the edge rather than in the middle. **Clamp alone is a no-op for
+a canvas tap**, which is worth knowing before simplifying this: a node you can
+tap is already on screen, so the weighted move is the only thing that does
+anything for the commonest interaction. The clamp earns its place on wikilinks,
+search picks and back-navigation, where the target may be anywhere.
+
+**The pan runs on the compositor, not on this thread.** Frame *cost* was never
+the problem — measured on the dev server, a full scene re-stroke is 1.77ms and
+a cached one 0.03ms, so a main-thread animation had budget to spare. The
+problem is when the frames arrive. Opening a note fetches its JSON and, when
+that lands, parses the markdown through remark, rehype, KaTeX and highlight in
+one synchronous block, and nothing rAF-driven runs while that happens. A
+clock-driven pan came back from it having spent most of its duration and
+skipped to the end; capping the per-frame step fixed the skip and left a stall
+in its place. Dragging never has either problem, because a drag advances by the
+events it is handed and a busy thread simply pauses it.
+
+So the camera is not animated at all. `planPan` paints the whole move into one
+bitmap and `PanOverlay` (`panOverlay.ts`) slides it with a Web Animations
+transform, which Chrome runs off the main thread; the camera lands in one step
+at the end. Two things make that honest rather than a trick: a pan holds `k`
+fixed, so every frame really is the same picture at a different offset; and the
+bitmap covers the union of the start and end views, so nothing ever slides into
+blank space. `PaintView` is what makes it expressible — `paintScene` and
+`paintLabels` take the camera and band they are painting for instead of reading
+`this.tx`, so the same code serves the live canvas and the oversized bitmap.
+Labels ride along inside it, which is only correct because the move is a pure
+translation.
+
+Two failure modes are handled and both are easy to reintroduce. A hidden
+document does not advance the animation timeline at all — `playState` still
+says "running" while `currentTime` sits at zero — so mounting an overlay there
+would pin a stale picture over the graph until the tab was looked at again;
+`start` takes the move in one step instead, and a `visibilitychange` listener
+plus a wall-clock timer end a slide that is hidden midway. And `resize`
+cancels, because the overlay is a picture of a canvas at a size that no longer
+exists.
+
+`cancelPan` is the other half. A pan in flight is dropped by any `pointerdown`,
+any zoom, and every one of the framing methods — a reader who grabs the canvas,
+or a reset that supersedes the pan, has to win outright rather than fight an
+animation. Because the camera does not move during a slide, cancelling reads
+the overlay's live transform and converts it back through `panOrigin` — the
+translation the bitmap was painted at — so an interrupted move keeps the view
+the reader has already watched arrive at. `prefers-reduced-motion` takes the
+target in one step. The duration scales with distance
+(`PAN_MS_MIN`..`PAN_MS_MAX`): one flat 450ms made a short nudge feel dragged
+out and a long haul crawl.
+
+Only the reader moves it after that. The re-framing effect is keyed on
+`sheetMove`, a counter that the sheet's own `onHeight`/`onCollapse` handlers
+bump, plus the throttled drag and `handleReset`. It used to be keyed on
+`sheetHeight`, `collapsed` and `legendH` directly, which cannot tell a drag from
+a tap: opening a note expands a collapsed sheet and hides the topic list, so
+every tap looked like the sheet moving. Closing a note frames imperatively —
+the topic list is still `display:none` in that commit, so `handleReset` frames
+against `legendShownRef`, the height the list last had on screen, rather than
+the zero the live measurement reports. That ref is also why the legend's
+`ResizeObserver` frames on its first non-zero measurement with nothing open: on
+a cold load into a note the list is hidden from the load until the reader
+closes it, so the reset reads a zero and the real height arrives a commit later.
+
 **Nothing simulates at runtime.** The layout is solved once, at build time, and
 the shipped coordinates in `graph.json` are final — there is no worker and no
 d3-force in the bundle. Nodes cannot be dragged; the camera is the only thing
@@ -194,6 +281,14 @@ directly over the node — and the ±95 offsets only ever win when the alternati
 is not drawing the label at all. Measured in the browser at the survey zoom: 32
 of 32 named at 1920x1080 and at 1440x900, 28 at 1280x800; at 1920 only three
 labels move at all, and all three go straight up.
+
+A phone takes none of that ladder. It labels the index and the selected node
+and nothing else — a third of the width with the sheet over most of the height
+has no room for thirty-two course names, and navigation there runs through the
+pages rather than the canvas. The index is on that short list because the phone
+lands on the survey view rather than inside the index note, so "Start here" is
+the only thing on the landing screen that says what to do with the graph. It
+still reads at 15px there, against 21 on a desktop.
 
 Labels used to step outward along the ray from the index instead. That seated
 all 32 but put 23 of them on top of another disc at the survey zoom, and the
@@ -313,7 +408,8 @@ constructor parameter properties and enums; `verbatimModuleSyntax` requires
 **The scene is a cached bitmap, so anything drawn into it has to be keyed.**
 `scene()` in `src/graph/renderer.ts` strokes the link mesh, the discs and the
 selection and search rings into an offscreen canvas, and `draw()` blits that.
-13.7k links and ~950 discs cost about 10ms a frame between them and none of it
+13.7k links and ~950 discs cost 1.77ms a frame between them (measured, at the
+phone's reading zoom; a cached frame is 0.03ms) and none of it
 changes when the cursor moves — a hover adds one ring — so repainting the lot
 for it was most of the hover lag. The bitmap is rebuilt only when its key
 changes: canvas size, camera, `filterVersion`, `paletteVersion`,

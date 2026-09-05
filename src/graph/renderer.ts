@@ -1,5 +1,6 @@
 import { buildAdjacency } from './types';
 import type { Adjacency, GraphData, GraphNode, GraphPalette } from './types';
+import { PanOverlay } from './panOverlay';
 
 /**
  * Canvas graph renderer.
@@ -72,6 +73,60 @@ const SURVEY_DROP = 0.02;
 const MIN_K = 0.08;
 const MAX_K = 12;
 
+/** How long `panIntoView` takes, in ms: a floor, plus time per screen pixel
+    travelled, up to a ceiling.
+
+    Long enough to be followed rather than landed on — the whole reason the pan
+    exists is that a cut between two views of a dense graph gives the eye
+    nothing to hold onto, and it is the movement itself that carries where you
+    went. Scaled by distance because one duration cannot serve both ends: a
+    flat 450ms made a 40px nudge feel dragged out and a long haul crawl. The
+    curve it is spent on lives with the animation, in `panOverlay.ts`. */
+const PAN_MS_MIN = 200;
+const PAN_MS_MAX = 400;
+const PAN_MS_PER_PX = 0.8;
+
+/** The most a pan's bitmap may cost, in device pixels.
+
+    At the phone's reading zoom the whole spiral spans about 530px, so no
+    honest pan comes close — this guards a pathological one (a very large
+    viewport, a layout that hands the canvas a strange size) rather than
+    limiting anything normal. Over it the move is applied in one step, without
+    the slide. */
+const PAN_BUF_MAX_PX = 6e6;
+
+/**
+ * Where a painter is putting pixels: the camera's translation, the size of the
+ * surface, and the rectangle labels have to stay inside.
+ *
+ * It exists because the same painting code serves two different surfaces. An
+ * ordinary frame paints the live canvas at the live camera. A pan paints one
+ * oversized bitmap, once, at an origin of its own, and then slides it. Handing
+ * the painters this instead of letting them read `this.tx` and `this.width` is
+ * what lets the second case exist at all.
+ *
+ * `k` is deliberately not part of it. A pan never zooms, and that is precisely
+ * why one painting can serve a whole move — a bitmap made at another zoom
+ * could not be slid into place, only redrawn.
+ */
+interface PaintView {
+  /** The camera's translation, in the surface's own coordinates. */
+  tx: number;
+  ty: number;
+  /** The surface, in CSS px. */
+  w: number;
+  h: number;
+  /** What labels must stay inside, in the same coordinates: the surface less
+      the chrome lying over it. */
+  band: { x0: number; y0: number; x1: number; y1: number };
+}
+
+/** The clearance `panIntoView` leaves between the node's disc and the edge of
+    the band, in screen px. Room for the node's own label, which on a phone is
+    drawn 4px under its edge — a node panned flush to the bottom would be on
+    screen with its name off it. */
+const PAN_MARGIN = 30;
+
 export class GraphRenderer {
   private ctx: CanvasRenderingContext2D;
   private dpr = 1;
@@ -131,6 +186,17 @@ export class GraphRenderer {
   private frameQueued = false;
   private disposed = false;
 
+  /** The pan in flight, if any. The compositor slides a bitmap, so the camera
+      does not move until the move ends — `panOrigin` is the translation that
+      bitmap was *painted* at, which is what turns the slide's current offset
+      back into a camera if the pan is stopped partway. See `panOverlay.ts`. */
+  private pan: PanOverlay;
+  private panOrigin = { x: 0, y: 0 };
+
+  /** Distance from the index to the outermost node, the scale the centring
+      weight falls off over. Measured once, on first use. */
+  private spiralR = 0;
+
   /** The cached scene — see `scene()`. Held as a bitmap so a hover is a blit. */
   private sceneCanvas: HTMLCanvasElement | null = null;
   private sceneCtx: CanvasRenderingContext2D | null = null;
@@ -172,6 +238,11 @@ export class GraphRenderer {
     this.adjacency = buildAdjacency(data.nodes.length, data.edges);
     this.byDegree = [...data.nodes].sort((a, b) => b.degree - a.degree);
 
+    // Before `resize`, which cancels any pan in flight and so expects this to
+    // exist. The parent is the clipping, positioned `.graph-page`; the overlay
+    // is deliberately larger than the viewport and relies on it.
+    this.pan = new PanOverlay(canvas.parentElement ?? canvas);
+
     this.attach();
     this.resize();
     this.fit();
@@ -192,6 +263,7 @@ export class GraphRenderer {
   dispose() {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
+    this.cancelPan();
     const c = this.canvas;
     c.removeEventListener('pointerdown', this.onPointerDown);
     c.removeEventListener('pointermove', this.onPointerMove);
@@ -206,6 +278,9 @@ export class GraphRenderer {
   }
 
   resize() {
+    // A slide in flight is a picture of a canvas that no longer exists at that
+    // size. End it here rather than let it finish against the new one.
+    this.cancelPan();
     const rect = this.canvas.getBoundingClientRect();
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.width = rect.width;
@@ -216,6 +291,7 @@ export class GraphRenderer {
   }
 
   setPalette(palette: GraphPalette) {
+    this.cancelPan();
     this.palette = palette;
     this.paletteVersion++;
     // Painted synchronously rather than queued: a theme swap runs inside
@@ -228,6 +304,7 @@ export class GraphRenderer {
 
   /** Frame the graph, ignoring the outermost 0.5% so orphans can't shrink it. */
   fit(padding = 60, inset: Partial<Inset> = {}) {
+    this.cancelPan();
     const xs = this.data.nodes.map((n) => n.x).sort((a, b) => a - b);
     const ys = this.data.nodes.map((n) => n.y).sort((a, b) => a - b);
     const q = (arr: number[], p: number) => arr[Math.floor((arr.length - 1) * p)];
@@ -261,6 +338,7 @@ export class GraphRenderer {
    * behind the panel.
    */
   focus(node: GraphNode, k = 2.2, inset: Partial<Inset> = {}) {
+    this.cancelPan();
     const right = inset.right ?? 0;
     const top = inset.top ?? 0;
     const bottom = inset.bottom ?? 0;
@@ -289,9 +367,10 @@ export class GraphRenderer {
    * thing on screen.
    */
   surveyFrame(inset: Partial<Inset> = {}) {
+    this.cancelPan();
     // A phone gets `coverFrame` on the index instead — see there. Landing and
-    // "Start here" still share it, so the camera is just as still there as on
-    // the desktop.
+    // reset still share it, so the camera is just as still there as on the
+    // desktop.
     if (this.narrow) {
       this.coverFrame(this.data.nodes[this.data.indexId], inset);
       return;
@@ -332,6 +411,7 @@ export class GraphRenderer {
    * and a strip this short has no room to give away.
    */
   coverFrame(node: GraphNode, inset: Partial<Inset> = {}) {
+    this.cancelPan();
     const k = this.courseCoverZoom(inset);
     const top = inset.top ?? 0;
     const visH = this.height - top - (inset.bottom ?? 0);
@@ -339,6 +419,216 @@ export class GraphRenderer {
     this.fitK = k;
     this.tx = (this.width - (inset.right ?? 0)) / 2 - node.x * k;
     this.ty = top + visH / 2 - node.y * k;
+    this.invalidate();
+  }
+
+  // ------------------------------------------------------------- camera pan
+  //
+  // Four pieces, in the order a move goes through them: `panIntoView` decides
+  // how far to travel, `planPan` paints the whole journey into one bitmap,
+  // `PanOverlay` slides that bitmap on the compositor, and `cancelPan` takes
+  // the camera back from it if anything interrupts. The split is not
+  // decoration — `panOverlay.ts` explains why the move cannot be animated on
+  // this thread at all.
+
+  /**
+   * Pan — never zoom — to *almost* centre `node`: a weighted move toward the
+   * middle of the visible band, floored at whatever it takes to be on screen.
+   *
+   * This is what opening a note while already reading does on a phone, and it
+   * sits between two things that are both wrong. Cutting straight to the node
+   * is disorienting in a graph this dense — everything looks like everything
+   * else, so an instant change of view reads as the graph having been replaced
+   * rather than as having been travelled across, which is why the move is
+   * eased. Truly centring it is the other one: point the view at a node on the
+   * rim and you get empty canvas on three sides with the spiral it belongs to
+   * pushed off screen, so the node arrives framed and unplaceable.
+   *
+   * Hence the weight, in `centringWeight`. Near the middle of the spiral the
+   * view follows you properly; out on the rim it barely shifts, because out
+   * there the surroundings are what tell you where you landed. The clamp is
+   * the floor under that, not the rule itself: it only fires when the weighted
+   * move left the node off the band, and it moves by the least that fixes it,
+   * so the node arrives at the edge rather than in the middle.
+   *
+   * `inset` is the chrome, so "on screen" means the strip above the sheet
+   * rather than the canvas: a node panned into the part the sheet covers has
+   * not been brought into view at all. When that strip is shorter than the
+   * clearance the node needs — a phone with the sheet at full height — the
+   * axis centres instead, which is the closest thing to satisfying it.
+   */
+  panIntoView(node: GraphNode, inset: Partial<Inset> = {}) {
+    const top = inset.top ?? 0;
+    const right = inset.right ?? 0;
+    const bottom = inset.bottom ?? 0;
+
+    const sx = node.x * this.k + this.tx;
+    const sy = node.y * this.k + this.ty;
+
+    // 1. Most of the way to centred, for a node near the middle of the spiral;
+    //    hardly any of the way, for one out on the rim.
+    const w = this.centringWeight(node);
+    let dx = ((this.width - right) / 2 - sx) * w;
+    let dy = (top + (this.height - top - bottom) / 2 - sy) * w;
+
+    // 2. Whatever more it takes to be on screen at all. Usually nothing — the
+    //    move above has already brought it in — but it is the guarantee that
+    //    the node you asked for is one you can see, however little weight its
+    //    radius earned it. "On screen" means the band rather than the canvas:
+    //    a node panned into the part the sheet covers is not in view.
+    const pad = PAN_MARGIN + this.radius(node) * this.k;
+    const onto = (pos: number, lo: number, hi: number) => {
+      if (hi < lo) return (lo + hi) / 2 - pos; // no room: centre the band
+      if (pos < lo) return lo - pos;
+      if (pos > hi) return hi - pos;
+      return 0;
+    };
+    dx += onto(sx + dx, pad, this.width - right - pad);
+    dy += onto(sy + dy, top + pad, this.height - bottom - pad);
+
+    // Sub-pixel moves are not worth 450ms of animation.
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+
+    this.cancelPan();
+    // Someone who has asked for less motion has asked for this too. The camera
+    // still ends up in the same place; it just gets there in one step.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      this.tx += dx;
+      this.ty += dy;
+      this.invalidate();
+      return;
+    }
+
+    const dur = Math.min(PAN_MS_MAX, PAN_MS_MIN + Math.hypot(dx, dy) * PAN_MS_PER_PX);
+    const plan = this.planPan(dx, dy, dur);
+    if (!plan) {
+      // No bitmap, no slide. Rare enough not to be worth a second animation
+      // path — the move still happens, just at once.
+      this.tx += dx;
+      this.ty += dy;
+      this.invalidate();
+      return;
+    }
+    // The camera stays put for the whole slide and lands in one step. Anything
+    // reading it mid-pan — a pick, a re-frame — goes through `cancelPan`,
+    // which puts it where the slide had actually got to first.
+    this.panOrigin = plan.origin;
+    const to = { x: this.tx + dx, y: this.ty + dy };
+    this.pan.start(plan, () => {
+      this.tx = to.x;
+      this.ty = to.y;
+      this.draw();
+    });
+  }
+
+  /**
+   * Paint the whole move into one bitmap and work out where it has to sit.
+   *
+   * The bitmap is the canvas plus the distance travelled on each axis, painted
+   * at an origin chosen so it always overhangs the direction of travel: at
+   * every point of the slide it still covers the viewport, so nothing is ever
+   * sliding into blank space. That is what lets the move happen on the
+   * compositor at all — see `panOverlay.ts` for why it has to.
+   *
+   * Labels are painted into it as well, and ride along. They can, for the same
+   * reason the scene can: a pan is a pure translation, so a name that is
+   * correctly placed at the end was correctly placed all the way there. Their
+   * band is the live one shifted into the bitmap's coordinates, so none of
+   * them is laid out in the padding and then slid off the edge.
+   */
+  private planPan(dx: number, dy: number, durationMs: number) {
+    const w = this.width + Math.abs(dx);
+    const h = this.height + Math.abs(dy);
+    const pw = Math.max(1, Math.round(w * this.dpr));
+    const ph = Math.max(1, Math.round(h * this.dpr));
+    if (pw * ph > PAN_BUF_MAX_PX) return null;
+
+    const bitmap = document.createElement('canvas');
+    bitmap.width = pw;
+    bitmap.height = ph;
+    const m = bitmap.getContext('2d');
+    if (!m) return null;
+
+    /* The overhang, in canvas px: how far the bitmap reaches back past the
+       viewport's top-left corner once it has arrived. Zero on an axis moving
+       the other way, which overhangs the far side instead. */
+    const px = Math.max(0, -dx);
+    const py = Math.max(0, -dy);
+    const live = this.liveView();
+    const view: PaintView = {
+      // The camera at the *end* of the move, expressed in the bitmap's own
+      // coordinates. The bitmap sitting at `to` therefore reproduces the final
+      // frame exactly, and every earlier offset is that frame slid back.
+      tx: this.tx + dx + px,
+      ty: this.ty + dy + py,
+      w,
+      h,
+      // The live band, shifted into those coordinates too.
+      band: {
+        x0: live.band.x0 + px,
+        y0: live.band.y0 + py,
+        x1: live.band.x1 + px,
+        y1: live.band.y1 + py,
+      },
+    };
+    this.paintScene(m, view);
+    this.paintLabels(m, view);
+
+    return {
+      bitmap,
+      cssWidth: w,
+      cssHeight: h,
+      // Both ends are the bitmap's top-left in canvas px. They differ by
+      // exactly (dx, dy), which is the move.
+      from: { x: -px - dx, y: -py - dy },
+      to: { x: -px, y: -py },
+      durationMs,
+      /** The camera the bitmap was painted at. Not part of the slide — it is
+          how an offset is read back as a camera. */
+      origin: { x: view.tx, y: view.ty },
+    };
+  }
+
+  /**
+   * How much of the way to centred `node` is worth moving: all of it at the
+   * spiral's centre, none of it at its rim, straight line between.
+   *
+   * This is the "almost" in almost-centred, and it is measured from the index
+   * rather than from the camera on purpose. Centring an outlying node means
+   * pointing the view at the edge of the graph, with empty canvas on three
+   * sides and the spiral it belongs to pushed off screen — the node ends up
+   * framed and unplaceable. A node near the middle has the spiral around it
+   * whatever the camera does, so centring it costs nothing and reads as the
+   * view following you.
+   *
+   * The falloff runs to the outermost node rather than to the course ring, so
+   * an outer course still earns a nudge instead of dropping straight to the
+   * clamp.
+   */
+  private centringWeight(node: GraphNode) {
+    const idx = this.data.nodes[this.data.indexId];
+    if (this.spiralR === 0) {
+      for (const n of this.data.nodes) {
+        this.spiralR = Math.max(this.spiralR, Math.hypot(n.x - idx.x, n.y - idx.y));
+      }
+    }
+    const r = Math.hypot(node.x - idx.x, node.y - idx.y);
+    return Math.max(0, 1 - r / this.spiralR);
+  }
+
+  /** Drop any pan in flight. Every camera move and every touch calls this: a
+      reader who grabs the canvas, or a framing that supersedes the pan, must
+      win outright rather than fight an animation for the next 450ms. */
+  private cancelPan() {
+    const at = this.pan.offset();
+    this.pan.stop();
+    if (!at) return;
+    // Keep the camera where the slide had actually reached. Snapping to either
+    // end would undo half a move the reader has already watched happen.
+    // The bitmap was painted at `panOrigin`, and sits at `at`; so what the
+    // reader is looking at is the graph seen from `panOrigin + at`.
+    this.tx = this.panOrigin.x + at.x;
+    this.ty = this.panOrigin.y + at.y;
     this.invalidate();
   }
 
@@ -428,6 +718,7 @@ export class GraphRenderer {
   }
 
   private zoomAt(sx: number, sy: number, factor: number) {
+    this.cancelPan();
     const next = Math.max(MIN_K, Math.min(MAX_K, this.k * factor));
     if (next === this.k) return;
     // Keep the point under the cursor fixed.
@@ -445,6 +736,9 @@ export class GraphRenderer {
   }
 
   private onPointerDown = (e: PointerEvent) => {
+    // A finger on the canvas outranks a pan in flight — the reader is steering
+    // now, and an animation still nudging tx/ty under them is a fight.
+    this.cancelPan();
     this.canvas.setPointerCapture(e.pointerId);
     const p = this.local(e);
     this.pointers.set(e.pointerId, p);
@@ -573,6 +867,7 @@ export class GraphRenderer {
    * well, so they can't be clicked through the gap where they used to be.
    */
   setFilter(topics: Set<string> | null, showCourses: boolean) {
+    this.cancelPan();
     this.topicFilter = topics;
     this.showCourses = showCourses;
     this.filterVersion++;
@@ -601,6 +896,7 @@ export class GraphRenderer {
    * Takes precedence over the selection highlight while a query is active.
    */
   setSearchMatches(ids: Set<number> | null) {
+    this.cancelPan();
     this.searchMatches = ids && ids.size ? ids : null;
     this.searchVersion++;
     this.invalidate();
@@ -614,6 +910,7 @@ export class GraphRenderer {
 
   /** Mark the selected node. This is the only thing that lights a neighbourhood. */
   setSelected(node: GraphNode | null) {
+    this.cancelPan();
     if (node === this.selected) return;
     this.selected = node;
     // Set here rather than in the click handler so a cold load of the index's
@@ -678,14 +975,26 @@ export class GraphRenderer {
     });
   }
 
+  /** The live canvas, at the camera it is holding right now. */
+  private liveView(): PaintView {
+    const { top, right, bottom } = this.viewInset;
+    return {
+      tx: this.tx,
+      ty: this.ty,
+      w: this.width,
+      h: this.height,
+      band: { x0: 0, y0: top, x1: this.width - right, y1: this.height - bottom },
+    };
+  }
+
   /** The world rect currently on screen, with a margin so a node straddling
       the edge still draws. */
-  private viewRect() {
+  private viewRect(tx = this.tx, ty = this.ty, w = this.width, h = this.height) {
     return {
-      x0: -this.tx / this.k - 40,
-      y0: -this.ty / this.k - 40,
-      x1: (this.width - this.tx) / this.k + 40,
-      y1: (this.height - this.ty) / this.k + 40,
+      x0: -tx / this.k - 40,
+      y0: -ty / this.k - 40,
+      x1: (w - tx) / this.k + 40,
+      y1: (h - ty) / this.k + 40,
     };
   }
 
@@ -707,12 +1016,17 @@ export class GraphRenderer {
   /**
    * Everything that doesn't move with the cursor, as a bitmap.
    *
-   * 13.7k links and ~950 discs cost about 10ms a frame between them, and every
-   * pixel of it is identical from one frame to the next unless the camera, the
-   * filter, the palette or the selection changed. Hover changes none of those —
-   * it adds one ring — so re-drawing the lot on every mouse move was paying the
-   * whole frame to move a circle. Cached here and blitted, a hover costs a
+   * 13.7k links and ~950 discs cost 1.77ms a frame between them — measured, in
+   * the browser, at the phone's reading zoom — and every pixel of it is
+   * identical from one frame to the next unless the camera, the filter, the
+   * palette or the selection changed. Hover changes none of those; it adds one
+   * ring. So re-drawing the lot on every mouse move was paying the whole frame
+   * to move a circle. Cached here and blitted, a hover costs 0.03ms: a
    * `drawImage`, the ring, and the labels.
+   *
+   * Those two numbers are worth keeping accurate. This comment used to guess
+   * "about 10ms", and that guess is what made an animated pan look like a cost
+   * problem when it was a scheduling one — see `panOverlay.ts`.
    *
    * Rebuilt at device resolution under the same transform the visible canvas
    * uses, so the blit is a 1:1 copy with no resampling, and it carries its own
@@ -754,6 +1068,23 @@ export class GraphRenderer {
       m.setTransform(1, 0, 0, 1, 0, 0);
     }
 
+    this.paintScene(m, this.liveView());
+    this.sceneKey = key;
+    return c;
+  }
+
+  /**
+   * Paint the links, the discs and the selection rings for one camera.
+   *
+   * Split out of `scene()` so a pan can paint a *bigger* bitmap than the
+   * canvas, once, and then spend its frames blitting it — see `panIntoView`.
+   * Everything here is relative to the `tx`/`ty`/`w`/`h` it is handed rather
+   * than to the live camera, which is the whole point; `this.k` is not, because
+   * a pan never changes the zoom and a scene painted at another one could not
+   * be blitted at all.
+   */
+  private paintScene(m: CanvasRenderingContext2D, view: PaintView) {
+    const { tx, ty, w, h } = view;
     const palette = this.palette;
     // Only selection dims the graph. Hover is a readout, not a state change.
     const focus = this.selected;
@@ -764,14 +1095,14 @@ export class GraphRenderer {
 
     m.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     m.fillStyle = palette.bg;
-    m.fillRect(0, 0, this.width, this.height);
-    m.transform(this.k, 0, 0, this.k, this.tx, this.ty);
+    m.fillRect(0, 0, w, h);
+    m.transform(this.k, 0, 0, this.k, tx, ty);
 
     const { edges, nodes } = this.data;
-    const view = this.viewRect();
+    const rect = this.viewRect(tx, ty, w, h);
     const onScreen = (n: GraphNode) =>
-      n.x >= view.x0 && n.x <= view.x1 && n.y >= view.y0 && n.y <= view.y1;
-    const visible = (n: GraphNode) => this.isVisible(n, view);
+      n.x >= rect.x0 && n.x <= rect.x1 && n.y >= rect.y0 && n.y <= rect.y1;
+    const visible = (n: GraphNode) => this.isVisible(n, rect);
 
     // --- links: one path, one stroke -------------------------------------
     // Every link shares a style, so the whole mesh is a single draw call. This
@@ -847,23 +1178,19 @@ export class GraphRenderer {
       }
     }
 
-    this.sceneKey = key;
-    return c;
   }
 
-  draw() {
-    const { ctx, palette } = this;
-    const nodes = this.data.nodes;
-    const idx = nodes[this.data.indexId];
-    const focus = this.selected;
-    const hasFocus = focus !== null;
 
-    const view = this.viewRect();
-    const visible = (n: GraphNode) => this.isVisible(n, view);
+  draw() {
+    const ctx = this.ctx;
+    const rect = this.viewRect();
+    const visible = (n: GraphNode) => this.isVisible(n, rect);
 
     // Links, discs and the rings that mark the open note and the search hits
     // all come off the cached bitmap in one copy — see `scene()`. Only the
-    // hover ring and the labels are drawn per frame.
+    // hover ring and the labels are drawn per frame. Nothing here runs during
+    // a pan: the overlay is covering this canvas, and it is the compositor's
+    // to move.
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(this.scene(), 0, 0);
 
@@ -879,17 +1206,35 @@ export class GraphRenderer {
       ctx.globalAlpha = 1;
     }
 
-    // --- labels -----------------------------------------------------------
-    // Drawn in screen space, not world space: text stays crisp at any zoom, and
-    // collisions can be measured in the units that actually matter.
-    //
-    // Strictly greedy in priority order — what you're pointing at, what you've
-    // selected, the entry point, the courses, then everything else — and a
-    // label that would touch one already placed is simply not drawn. Only the
-    // first three are allowed to force their way in. Everything else competes
-    // for the remaining space, so the screen never carries more text than it
-    // can show legibly; zooming in frees space and the rest reappear on their
-    // own.
+    // --- labels ---------------------------------------------------------
+    this.paintLabels(ctx, this.liveView());
+  }
+
+  /**
+   * Draw the names, into whatever `view` describes.
+   *
+   * Screen space, not world space: text stays crisp at any zoom, and
+   * collisions can be measured in the units that actually matter. Which makes
+   * it the one pass that has to be told where the camera is rather than
+   * reading it — the same names are painted onto the live canvas for an
+   * ordinary frame and onto a pan's oversized bitmap for a move, and those two
+   * have different origins and different bands to stay inside.
+   *
+   * Strictly greedy in priority order — what you're pointing at, what you've
+   * selected, the entry point, the courses, then everything else — and a label
+   * that would touch one already placed is simply not drawn. Only the first
+   * three are allowed to force their way in. Everything else competes for the
+   * remaining space, so the screen never carries more text than it can show
+   * legibly; zooming in frees space and the rest reappear on their own.
+   */
+  private paintLabels(ctx: CanvasRenderingContext2D, view: PaintView) {
+    const palette = this.palette;
+    const nodes = this.data.nodes;
+    const idx = nodes[this.data.indexId];
+    const hasFocus = this.selected !== null;
+    const rect = this.viewRect(view.tx, view.ty, view.w, view.h);
+    const visible = (n: GraphNode) => this.isVisible(n, rect);
+
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
@@ -907,12 +1252,13 @@ export class GraphRenderer {
     /** Breathing room between neighbouring labels, in screen pixels. */
     const GAP = 5;
     /** The part of the canvas the reader can actually see, and its margin. */
-    const visW = this.width - this.viewInset.right;
-    const visH = this.height - this.viewInset.bottom;
+    const visL = view.band.x0;
+    const visW = view.band.x1;
+    const visH = view.band.y1;
     /* The top bar's lower edge. Unlike `visW`/`visH` this is a floor rather
        than a ceiling, so it is carried separately instead of folded into a
        height. */
-    const visT = this.viewInset.top;
+    const visT = view.band.y0;
     const EDGE = 6;
 
     /* Every label hangs straight down from the node it names — same x, further
@@ -967,8 +1313,8 @@ export class GraphRenderer {
       .filter((n) => (n.kind === 'course' || n.kind === 'index') && visible(n))
       .map((n) => ({
         id: n.id,
-        cx: n.x * this.k + this.tx,
-        cy: n.y * this.k + this.ty,
+        cx: n.x * this.k + view.tx,
+        cy: n.y * this.k + view.ty,
         r: this.radius(n) * this.k,
       }));
 
@@ -979,19 +1325,22 @@ export class GraphRenderer {
       // fixed here rather than by the caller, so it doesn't shrink the moment
       // you hover it and get labelled by a different branch.
       const isIndex = n.kind === 'index';
-      // "Start here" is an invitation to explore, which is the desktop's job.
-      // A phone navigates through the pages, so there the node is just labelled
-      // for what it is — and at a size that doesn't span the screen. Once the
-      // invitation has been taken it reads as "Index" everywhere.
+      // The invitation is worded the same on every width. It used to read
+      // "Index" on a phone, on the grounds that exploring a canvas is a
+      // desktop affordance — but the phone lands on the same survey view now,
+      // and a node labelled for what it *is* rather than for what to do with
+      // it left that view with nothing telling a first visitor where to start.
+      // The size still differs: 21px spans a third of a phone's screen. Once
+      // the invitation has been taken it reads as "Index" everywhere.
       const phone = this.narrow;
-      const text = isIndex ? (phone || this.indexOpened ? 'Index' : 'Start here') : n.title;
+      const text = isIndex ? (this.indexOpened ? 'Index' : 'Start here') : n.title;
       if (isIndex) {
         size = phone ? 15 : 21;
         bold = true;
       }
 
-      const nx = n.x * this.k + this.tx;
-      const ny = n.y * this.k + this.ty;
+      const nx = n.x * this.k + view.tx;
+      const ny = n.y * this.k + view.ty;
       const edge = this.radius(n) * this.k;
 
       ctx.font = `${bold ? '600 ' : ''}${size}px ui-sans-serif, system-ui, sans-serif`;
@@ -1058,8 +1407,8 @@ export class GraphRenderer {
         // leader line still ties it to its node, so a label that had to move is
         // merely offset, not lost.
         const halfW = w / 2 + padX;
-        if (halfW * 2 > visW - EDGE * 2 || size + padY * 2 > visH - visT - EDGE * 2) continue;
-        cx = Math.min(Math.max(cx, EDGE + halfW), visW - EDGE - halfW);
+        if (halfW * 2 > visW - visL - EDGE * 2 || size + padY * 2 > visH - visT - EDGE * 2) continue;
+        cx = Math.min(Math.max(cx, visL + EDGE + halfW), visW - EDGE - halfW);
         cy = Math.min(Math.max(cy, visT + EDGE + padY), visH - EDGE - size - padY);
 
         const b: Box = { x0: cx - halfW, y0: cy - padY, x1: cx + halfW, y1: cy + size + padY };
@@ -1126,14 +1475,19 @@ export class GraphRenderer {
       return;
     }
 
-    // On a phone, the selected node and nothing else.
+    // On a phone, the entry point and the selected node — and nothing else.
     //
     // There is no room for more: a third of the width, and the reading sheet
-    // over most of the height. Even the index's own label goes — navigation
-    // there runs through the pages rather than the canvas, so the graph is an
-    // overview to orient by, not a menu to aim at.
+    // over most of the height, so the course pass below is a wall of
+    // overlapping text there. The index is the exception, and has to be: the
+    // phone lands on the survey view now rather than inside the index note, so
+    // "Start here" is the only thing on that screen that says what to do with
+    // the graph. Nothing else about the phone's labelling changes.
     if (this.narrow) {
-      if (this.selected && visible(this.selected)) label(this.selected, 14, true);
+      if (visible(idx)) label(idx, 15, true, true);
+      if (this.selected && this.selected !== idx && visible(this.selected)) {
+        label(this.selected, 14, true);
+      }
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       return;
     }
