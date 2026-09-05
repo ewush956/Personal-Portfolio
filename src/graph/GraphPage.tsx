@@ -492,14 +492,23 @@ export default function GraphPage() {
     rendererRef.current?.setSelected(selected);
   }, [selected]);
 
-  /* Opening the *first* note frames it. Opening the ones after it does not.
+  /* Opening the *first* note frames it. Opening the ones after it pans.
    *
    * The two are different requests. From the landing view the sheet is about
    * to rise over most of the screen, so a tap that left the camera alone would
-   * put the node you just chose behind the thing you chose it to read; framing
-   * is what hands back a band with that node in the middle of it. Once you are
-   * reading, the graph above the sheet is the map you are navigating by, and
-   * re-centring it on every wikilink is the lurch that loses your place.
+   * put the node you just chose behind the thing you chose it to read;
+   * framing is what hands back a band with that node in the middle of it, and
+   * the zoom changes with it because the band it is fitting into just did.
+   *
+   * Once you are reading, the graph above the sheet is the map you are
+   * navigating by. Re-framing it on every wikilink loses your place, but
+   * holding it dead still hides the node you just asked for whenever it is off
+   * the strip. `panIntoView` is the middle: the zoom never moves, and the
+   * camera slides most of the way to centred for a node near the middle of the
+   * spiral, hardly at all for one on its rim, and at minimum far enough that
+   * the node is on screen. It is a slide rather than a cut because between two
+   * views of a graph this dense a cut reads as the graph having been swapped
+   * rather than as having been moved across.
    *
    * A phone only. The desktop's panel takes the right-hand third rather than
    * rising over the graph, and its own rule — the index re-surveys, nothing
@@ -510,14 +519,19 @@ export default function GraphPage() {
     const reading = openNote !== null;
     const opening = reading && !wasReading.current;
     wasReading.current = reading;
-    if (!opening || !openNote) return;
+    if (!reading || !openNote) return;
     if (window.innerWidth > NARROW) return;
-    // The sheet arrives expanded whatever it was before (the effect above
-    // queues that), so the frame has to be computed against an open sheet
-    // rather than the collapsed one this commit still reports.
+    // The sheet arrives expanded whichever branch runs (the effect above
+    // queues that), so both are computed against an open sheet rather than the
+    // collapsed one this commit still reports. It matters as much for the pan
+    // as for the frame: panning a node into a band the sheet is about to rise
+    // over puts it on screen for as long as the expansion takes.
     collapsedRef.current = false;
-    rendererRef.current?.setViewInset(inset(false));
-    rendererRef.current?.coverFrame(openNote, inset(false));
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    renderer.setViewInset(inset(false));
+    if (opening) renderer.coverFrame(openNote, inset(false));
+    else renderer.panIntoView(openNote, inset(false));
   }, [openNote, inset]);
 
   /* The sheet came to rest at a new height: land the camera exactly, whatever
