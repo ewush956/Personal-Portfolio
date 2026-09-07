@@ -294,8 +294,19 @@ Labels used to step outward along the ray from the index instead. That seated
 all 32 but put 23 of them on top of another disc at the survey zoom, and the
 varying bearings read as arbitrary. Two things are coupled to the change and
 should move with it: `R_MIN` above, and `courseFitZoom`'s `padding` (110 → 60,
-then 46 once the shell's header took a slice off the top of the band), which
-reserved a band around the ring for labels that no longer go there.
+then 46 once the shell's header took a slice off the top of the band, then 36
+once the nav rail took 216px off its width), which reserved a band around the
+ring for labels that no longer go there.
+
+That last cut is worth reading as a floor rather than a direction. The rail
+costs this view a quarter of its zoom at 1440x900 — the ring is fitted into the
+canvas *less* the reading panel, so 880px of band became 664 — and the label
+text did not shrink with it, which is what puts the longest inner names —
+`Introduction to Software Engineering`, `Human Computer Interaction` — out
+sideways at the bottom of the ladder. Padding buys some of that back and then
+turns on you: below ~30 the ring grows into the band's edges and the *outer*
+names get clamped sideways instead. The remaining gap is only closeable by
+making the course names smaller in this view or the reading panel narrower.
 
 **Node radius lives in three places and must agree.** `scripts/build-graph.mjs`
 (the collision term in the solve), `src/graph/renderer.ts` (drawing, hit-testing
