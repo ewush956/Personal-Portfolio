@@ -674,15 +674,22 @@ export class GraphRenderer {
    * `padding` has to clear the *labels*, not just the course discs. Every course
    * is named in this view, and a name is wider than the disc it belongs to.
    *
-   * 46, down from the 110 the outward labels needed and then from 60: labels
+   * 36, down from the 110 the outward labels needed, then 60, then 46: labels
    * hang straight down, so the band around the ring only has to hold half a
-   * name either side rather than a whole one stepped out along the ray. The
-   * looser fit is still worth having — it spreads the courses further apart on
-   * screen, which is what gives their labels room to sit tight under them — but
-   * with the header taking a slice off the top of the band, 60 left the whole
-   * arrangement reading smaller than the space it had.
+   * name either side rather than a whole one stepped out along the ray.
+   *
+   * It is bounded on both sides, which is why it stops here rather than going
+   * lower. Too large and the ring is drawn small in the band, so the *inner*
+   * windings run out of circumference to park their names on and the label
+   * search ends up sliding them sideways — the nav rail took 216px off the
+   * canvas, which cost this view a quarter of its zoom and is what made that
+   * visible. Too small and the ring grows into the band's own edges, so the
+   * *outer* names hit the visible-region clamp instead: at 20 the widest of
+   * them are shoved 15-45px off their nodes, which is the same defect at the
+   * other end of the spiral. Measured against the shipped layout, 36 is the
+   * bottom of that curve.
    */
-  courseFitZoom(inset: Partial<Inset> = {}, padding = 46) {
+  courseFitZoom(inset: Partial<Inset> = {}, padding = 36) {
     return this.courseZoom(inset, padding, Math.min);
   }
 
