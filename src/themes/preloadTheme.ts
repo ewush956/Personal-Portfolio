@@ -80,12 +80,19 @@ async function loadFonts(id: ThemeId): Promise<void> {
 }
 
 /**
- * Read a theme's background-image URLs without committing the theme.
+ * Read a theme's image URLs without committing the theme.
  *
  * Theme tokens are defined on plain `[data-theme='<id>']` selectors, which match
  * ANY element — so an off-screen probe with the attribute set resolves the same
  * `--bg-*` values the real page would use. We parse the `url(...)` refs out of
- * the hero / projects / contact layer tokens.
+ * the hero / education / projects / contact layer tokens.
+ *
+ * The hero portrait is not a token — it is an `<img src>` that `Hero` swaps on
+ * the theme — so it comes off the registry instead. It belongs in the same set
+ * because it is the same problem: `Hero` re-renders inside the View Transition
+ * callback, so anything it points at that isn't already decoded lands as a
+ * stall in the middle of the reveal and a blank rectangle in the snapshot the
+ * reveal is uncovering. At ~2MB it is by some distance the largest of them.
  */
 function getThemeAssetUrls(id: ThemeId): string[] {
   const probe = document.createElement('div');
@@ -103,6 +110,10 @@ function getThemeAssetUrls(id: ThemeId): string[] {
   }
 
   probe.remove();
+
+  const portrait = THEMES.find((t) => t.id === id)?.portrait;
+  if (portrait) urls.add(portrait);
+
   return [...urls];
 }
 

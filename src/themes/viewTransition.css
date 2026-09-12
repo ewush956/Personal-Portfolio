@@ -21,12 +21,25 @@
   z-index: 1;
 }
 
+/* Every value here is a PERCENTAGE, and all three have to stay that way.
+
+   The clip is resolved against ::view-transition-new(root)'s own reference box,
+   and that box is not reliably the CSS viewport — at devicePixelRatio 2
+   Chromium sizes it in device pixels and then displays the pseudo scaled down
+   by the dpr, so absolute pixels came out at 1/dpr: the circle opened from half
+   the origin and stopped at half the radius, which reads as a reveal that
+   starts in the wrong place and dies partway across. Percentages resolve inside
+   whatever that box is, so the scale cancels (see `revealGeometry`).
+
+   `0%` in the `from` is load-bearing too: a length and a percentage do not
+   interpolate, so `circle(0px)` -> `circle(102%)` would fall back to discrete
+   steps and the circle would snap open instead of growing. */
 @keyframes theme-reveal {
   from {
-    clip-path: circle(0px at var(--vt-x, 50%) var(--vt-y, 50%));
+    clip-path: circle(0% at var(--vt-x, 50%) var(--vt-y, 50%));
   }
   to {
-    clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 50%) var(--vt-y, 50%));
+    clip-path: circle(var(--vt-r, 100%) at var(--vt-x, 50%) var(--vt-y, 50%));
   }
 }
 

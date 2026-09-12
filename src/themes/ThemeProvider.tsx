@@ -21,11 +21,40 @@ function readInitialTheme(): ThemeId {
   return isThemeId(stored) ? stored : DEFAULT_THEME;
 }
 
-/** Radius that reaches the farthest viewport corner from (x, y). */
-function maxRadius(x: number, y: number): number {
-  const dx = Math.max(x, window.innerWidth - x);
-  const dy = Math.max(y, window.innerHeight - y);
-  return Math.hypot(dx, dy);
+/**
+ * The reveal circle's origin and radius, as PERCENTAGES of the pseudo-element
+ * it will be clipped into.
+ *
+ * Percentages rather than pixels, and that is the whole point. The clip is
+ * applied to ::view-transition-new(root), whose reference box is NOT reliably
+ * the CSS viewport: at devicePixelRatio 2 Chromium resolves it against a box in
+ * DEVICE pixels and then displays the pseudo scaled down by the dpr. Handing it
+ * CSS pixels therefore drew the circle at 1/dpr — half the origin and half the
+ * radius on a 2x display. It looked like the reveal "stopped halfway and
+ * vanished" and started nowhere near the button, while every timing measurement
+ * of the animation came back perfect, because the animation was fine and the
+ * geometry was not.
+ *
+ * A percentage is resolved inside that box whatever its scale, so the scale
+ * factor cancels and the circle lands on the button at dpr 1, 2 or anything
+ * else. For the radius that relies on the rule that `circle(<percentage>)`
+ * resolves to `P% * sqrt(w^2 + h^2) / sqrt(2)` of its reference box: express
+ * the reach we want as a fraction of the viewport's own diagonal and the box
+ * size drops out of both sides.
+ *
+ * `reach` is the distance to the farthest viewport corner, padded 12% so an
+ * address-bar or viewport resize mid-reveal can't leave an edge flashing
+ * through.
+ */
+function revealGeometry(x: number, y: number) {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const reach = Math.hypot(Math.max(x, w - x), Math.max(y, h - y)) * 1.12;
+  return {
+    x: `${(x / w) * 100}%`,
+    y: `${(y / h) * 100}%`,
+    r: `${((reach * Math.SQRT2) / Math.hypot(w, h)) * 100}%`,
+  };
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -60,6 +89,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     try {
       // Fully load + decode the new theme's fonts and background images BEFORE
       // revealing it, so the reveal shows a fully-painted theme with no FOUT flash.
+      //
+      // Deliberately NOT gated on the result. `preloadThemeAssets` reports
+      // whether everything settled inside its budget, and gating the reveal on
+      // that was tried and reverted: `img.decode()` on an already-cached image
+      // can simply never settle in Chromium, so the report comes back false on
+      // switches where the assets are in fact perfectly warm, and the reveal
+      // silently stops happening at all. A late-decoding asset costs a flash;
+      // trusting this value costs the whole animation.
       await preloadThemeAssets(id);
 
       const doc = document as DocumentWithVT;
@@ -75,14 +112,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
       // Seed the reveal's origin + radius as custom properties; the CSS keyframe
       // animation on ::view-transition-new(root) reads them (see viewTransition.css).
-      // Radius is padded 12% so an address-bar/viewport resize mid-reveal can't
-      // leave an uncovered edge flashing through.
+      // All three are percentages — see `revealGeometry`, and do not "simplify"
+      // them back to pixels.
       const x = origin?.x ?? window.innerWidth / 2;
       const y = origin?.y ?? window.innerHeight / 2;
+      const geom = revealGeometry(x, y);
       const root = document.documentElement;
-      root.style.setProperty('--vt-x', `${x}px`);
-      root.style.setProperty('--vt-y', `${y}px`);
-      root.style.setProperty('--vt-r', `${maxRadius(x, y) * 1.12}px`);
+      root.style.setProperty('--vt-x', geom.x);
+      root.style.setProperty('--vt-y', geom.y);
+      root.style.setProperty('--vt-r', geom.r);
 
       // Freeze per-element CSS fades so the swap is instant and both snapshots are
       // clean — the circular reveal is then the only animation (see viewTransition.css).
