@@ -308,6 +308,29 @@ turns on you: below ~30 the ring grows into the band's edges and the *outer*
 names get clamped sideways instead. The remaining gap is only closeable by
 making the course names smaller in this view or the reading panel narrower.
 
+**The label placement is settled. Leave it alone.** The numbers above are the
+result of several rounds of retuning, and it has been signed off in the browser
+in the arrangement it ships in. Nothing that *looks* like an easy improvement
+here is one — every constant is balanced against another, in both directions:
+
+- the ladder's depths and the `drop + 1.5*|nudge| + 6 if above` weights
+  (`renderer.ts`), including the ±95 nudges, which only ever win when the
+  alternative is not drawing the label at all;
+- `courseFitZoom`'s `padding` (36), which is a floor and not a direction —
+  raising it cramps the *inner* names, lowering it clamps the *outer* ones;
+- `R_MIN` in `scripts/build-graph.mjs`, which is set by the labels rather than
+  by the discs;
+- `LABEL_ZOOM_COURSE` (1.6) and the `zoomedForCourses || requested` gate, which
+  is what keeps the survey view from opening onto thirty-two overlapping names;
+- the phone's short list — the index and the selected node, nothing else.
+
+Change one of these only when there is a reported defect that names it, and
+re-measure the count of seated labels at 1920x1080, 1440x900 and 1280x800
+before and after. A tidier-looking rule is not a reason. Do not "fix" a label
+that sits on a leader line off to one side: that is the search having correctly
+found the only clear slot, and the ±95 offsets existing is why the name is
+drawn at all.
+
 **Node radius lives in three places and must agree.** `scripts/build-graph.mjs`
 (the collision term in the solve), `src/graph/renderer.ts` (drawing, hit-testing
 and where a label sits) and `scripts/render-preview.mjs` (the card art). They no
