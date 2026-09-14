@@ -1,21 +1,14 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { useTheme } from '../themes/useTheme';
-import type { ThemeId } from '../themes/registry';
 import { SkillsMarquee } from './SkillsMarquee';
 import './Hero.css';
 
-/** Per-theme portrait (same photo, theme-matched background). */
-const PROFILE: Record<ThemeId, string> = {
-  synthwave: '/images/synthwave-profile.png',
-  'sleep-token': '/images/sleep-token-profile.png',
-  doom: '/images/doom-profile.png',
-  editorial: '/images/editorial-profile.png',
-  'hacker-bro': '/images/hacker-bro-profile.png',
-};
-
 export function Hero() {
-  const { themeId } = useTheme();
-  const portrait = PROFILE[themeId] ?? '/images/picture_with_cat.png';
+  // The portrait is a theme asset, and it lives in the registry so that
+  // `preloadThemeAssets` can fetch and decode it before the reveal rather than
+  // leaving a two-megabyte PNG to land in the middle of one.
+  const { theme } = useTheme();
+  const portrait = theme.portrait;
   const reduce = useReducedMotion();
   const stagger = (i: number) =>
     reduce

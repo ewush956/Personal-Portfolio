@@ -25,6 +25,22 @@
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
+/* ...with one exception, and it is the reason the warning above was right.
+   `ThemeSwitcher` animates this bar's HEIGHT when it condenses, and a
+   backdrop-filter whose region changes size has to re-sample and re-blur its
+   backdrop on every frame of that — and this bar's backdrop is the whole page:
+   four fixed full-viewport background layers plus the atmosphere pseudo-layers
+   under them. The frost is therefore suspended for exactly the frames the
+   height is moving (the class is added and removed around the WAAPI animation,
+   never left on). --header-bg still paints the surface throughout, and the
+   bar's content is faded out for most of the resize, so what is lost for 340ms
+   is the softness of what shows through — against a collapse that used to
+   stutter its way down. */
+.themes--resizing {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 .themes__inner {
   display: flex;
   flex-direction: column;

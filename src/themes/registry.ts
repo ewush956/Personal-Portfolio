@@ -22,6 +22,16 @@ export interface Theme {
   splash: string;
   /** Two swatch colors used to preview the palette on the chip. */
   swatch: [string, string];
+  /**
+   * Per-theme hero portrait (same photo, theme-matched background).
+   *
+   * It lives here rather than in `Hero` so `preloadThemeAssets` can see it. The
+   * portrait is the largest single asset a theme swaps in, and the swap happens
+   * inside the View Transition's callback — an un-decoded image there is a
+   * stall in the middle of the circular reveal, and a blank frame in the
+   * snapshot the reveal is uncovering.
+   */
+  portrait: string;
   /** Google Fonts stylesheet URLs, lazy-loaded the first time the theme is used. */
   fontLinks: string[];
 }
@@ -35,6 +45,7 @@ export const THEMES: Theme[] = [
     tagline: 'Deep forest green & ritual gold',
     splash: 'This is by far the classiest... but try the others :)',
     swatch: ['#c9a24b', '#0c1f17'],
+    portrait: '/images/sleep-token-profile.png',
     fontLinks: [
       'https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap',
     ],
@@ -45,6 +56,7 @@ export const THEMES: Theme[] = [
     tagline: 'Neon cyan & pink on a midnight grid',
     splash: 'Totally tubular! radical choice B)',
     swatch: ['#06eeff', '#ff5cf4'],
+    portrait: '/images/synthwave-profile.png',
     fontLinks: [
       'https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap',
     ],
@@ -55,6 +67,7 @@ export const THEMES: Theme[] = [
     tagline: 'Rust, blood & 8-bit hellfire',
     splash: 'System requirements for doom are... screen...',
     swatch: ['#e8331b', '#1a0f0c'],
+    portrait: '/images/doom-profile.png',
     fontLinks: [
       'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap',
     ],
@@ -65,6 +78,7 @@ export const THEMES: Theme[] = [
     tagline: 'Warm paper, serif headlines, print calm',
     splash: 'Anthropic called, they want their theme back :P',
     swatch: ['#c2410c', '#f4efe6'],
+    portrait: '/images/editorial-profile.png',
     fontLinks: [
       'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap',
     ],
@@ -75,6 +89,7 @@ export const THEMES: Theme[] = [
     tagline: 'Green-on-black terminal, scanlines and all',
     splash: "Oh no! He's hacking into the mainframe!! :o",
     swatch: ['#00ff9c', '#0a0f0a'],
+    portrait: '/images/hacker-bro-profile.png',
     fontLinks: [
       'https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap',
     ],

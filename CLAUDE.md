@@ -214,6 +214,54 @@ the zero the live measurement reports. That ref is also why the legend's
 a cold load into a note the list is hidden from the load until the reader
 closes it, so the reset reads a zero and the real height arrives a commit later.
 
+**The theme reveal's geometry is in percentages, and must stay that way.**
+The circle is a `clip-path` keyframe animation on `::view-transition-new(root)`
+(`src/themes/viewTransition.css`), seeded from `--vt-x` / `--vt-y` / `--vt-r`,
+which `revealGeometry()` in `ThemeProvider` writes as **percentages**.
+
+Pixels are wrong there. The clip resolves against the pseudo-element's own
+reference box, and that box is not reliably the CSS viewport: at
+`devicePixelRatio` 2 Chromium sizes it in *device* pixels and then displays the
+pseudo scaled down by the dpr, so CSS-pixel values drew the whole circle at
+1/dpr — half the origin and half the radius. Reported as "the reveal starts
+nowhere near the button, gets about halfway across, stops and disappears", and
+it only bites at dpr != 1, which is why it can appear without any code change.
+A percentage is resolved inside that box whatever its scale, so the factor
+cancels. The radius conversion leans on `circle(<percentage>)` resolving to
+`P% * sqrt(w^2 + h^2) / sqrt(2)` of the reference box.
+
+`0%` in the `from` keyframe is load-bearing too: a length and a percentage do
+not interpolate, so `circle(0px)` -> `circle(102%)` degrades to discrete steps
+and the circle snaps open instead of growing.
+
+Diagnosing this the next time: the animation's own clock is a red herring. Every
+timing measurement of a broken reveal comes back perfect — 800ms, ~60fps, no
+skips — because the animation *is* perfect and the geometry is not. Measure
+`::view-transition-new(root)`'s resolved `clip-path` and box, or compare where
+the circle visibly starts against `--vt-x`. Slowing the animation
+(`::view-transition-new(root){animation-duration:5s!important}`) makes it
+obvious by eye; a CDP screenshot will not, because it does not capture the
+view-transition layer.
+
+Related, and separately true: clip-path animations run on the MAIN THREAD in
+Chromium. Blocking the thread for 400ms mid-reveal froze the animation's clock
+at 233ms of 800 for the whole block and then jumped it to 633 on the next frame,
+so a stall shows up as a freeze followed by a skip rather than as jank. That is
+a reason not to do heavy work during a swap; it was NOT the cause of the bug
+above.
+
+**`preloadThemeAssets`' return value is not trustworthy.** It reports whether a
+theme's fonts and images settled inside its budget, and gating the reveal on it
+was tried and reverted: `img.decode()` on an already-cached image can simply
+never settle in Chromium, so it returns false on switches whose assets are
+perfectly warm, and the reveal silently stops happening at all. Await it for the
+warming, ignore the answer.
+
+The hero portrait rides in that warm-up (`theme.portrait` on the registry rather
+than a map inside `Hero`) because it is ~2MB and `Hero` swaps it inside the view
+transition's own callback. Anything else a swap makes the page point at belongs
+in that set too.
+
 **Nothing simulates at runtime.** The layout is solved once, at build time, and
 the shipped coordinates in `graph.json` are final — there is no worker and no
 d3-force in the bundle. Nodes cannot be dragged; the camera is the only thing
@@ -307,6 +355,29 @@ sideways at the bottom of the ladder. Padding buys some of that back and then
 turns on you: below ~30 the ring grows into the band's edges and the *outer*
 names get clamped sideways instead. The remaining gap is only closeable by
 making the course names smaller in this view or the reading panel narrower.
+
+**The label placement is settled. Leave it alone.** The numbers above are the
+result of several rounds of retuning, and it has been signed off in the browser
+in the arrangement it ships in. Nothing that *looks* like an easy improvement
+here is one — every constant is balanced against another, in both directions:
+
+- the ladder's depths and the `drop + 1.5*|nudge| + 6 if above` weights
+  (`renderer.ts`), including the ±95 nudges, which only ever win when the
+  alternative is not drawing the label at all;
+- `courseFitZoom`'s `padding` (36), which is a floor and not a direction —
+  raising it cramps the *inner* names, lowering it clamps the *outer* ones;
+- `R_MIN` in `scripts/build-graph.mjs`, which is set by the labels rather than
+  by the discs;
+- `LABEL_ZOOM_COURSE` (1.6) and the `zoomedForCourses || requested` gate, which
+  is what keeps the survey view from opening onto thirty-two overlapping names;
+- the phone's short list — the index and the selected node, nothing else.
+
+Change one of these only when there is a reported defect that names it, and
+re-measure the count of seated labels at 1920x1080, 1440x900 and 1280x800
+before and after. A tidier-looking rule is not a reason. Do not "fix" a label
+that sits on a leader line off to one side: that is the search having correctly
+found the only clear slot, and the ±95 offsets existing is why the name is
+drawn at all.
 
 **Node radius lives in three places and must agree.** `scripts/build-graph.mjs`
 (the collision term in the solve), `src/graph/renderer.ts` (drawing, hit-testing

@@ -25,6 +25,9 @@ const CIRCLE_START = 120; // circles begin once the resize is underway
 
 type Phase = 'expanded' | 'condensing' | 'condensed' | 'expanding';
 
+/** Set on `.themes` only while its height animation is running — see below. */
+const RESIZING = 'themes--resizing';
+
 export function ThemeSwitcher() {
   const { theme, themeId } = useTheme();
   const [phase, setPhase] = useState<Phase>('expanded');
@@ -161,6 +164,20 @@ export function ThemeSwitcher() {
       if (Math.abs(fromH - toH) > 0.5) {
         section.style.height = `${fromH}px`;
         section.style.overflow = 'hidden'; // clip content while the bar grows
+        // The bar is frosted (backdrop-filter, ThemeSwitcher.css) and it is the
+        // one frosted surface on the site whose box changes: a filter region
+        // that resizes has to re-sample and re-blur its backdrop every frame,
+        // and this bar's backdrop is the whole page — four fixed full-viewport
+        // background layers and the atmosphere pseudo-layers under them. That
+        // is the lag in the collapse. Suspend the blur for exactly the frames
+        // the height is moving; --header-bg still carries the surface, the
+        // content is faded out through most of it, and the frost is back the
+        // moment the bar settles. It rides with the inline height and overflow:
+        // set together here, cleared together on finish, and cleared by this
+        // effect's cleanup on the interrupted path — deliberately NOT on the
+        // animation's own `cancel`, which fires a task late and would strip the
+        // class off whichever animation had replaced this one by then.
+        section.classList.add(RESIZING);
         const hAnim = section.animate([{ height: `${fromH}px` }, { height: `${toH}px` }], {
           duration: HEIGHT_MS,
           easing: 'cubic-bezier(0.4, 0, 0.2, 1)', // ease-in-out, no overshoot
@@ -168,6 +185,7 @@ export function ThemeSwitcher() {
         hAnim.onfinish = () => {
           section.style.height = '';
           section.style.overflow = '';
+          section.classList.remove(RESIZING);
         };
         animsRef.current.push(hAnim);
       }
@@ -225,6 +243,7 @@ export function ThemeSwitcher() {
       animsRef.current = [];
       section.style.height = '';
       section.style.overflow = '';
+      section.classList.remove(RESIZING);
     };
   }, [phase]);
 
